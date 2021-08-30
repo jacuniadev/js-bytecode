@@ -4,10 +4,17 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
-    "build": "tsc && node dist/app.js",
+    "_test": "echo \"Error: no test specified\" && exit 1",
+    "_build": "tsc --downlevelIteration && node dist/app.js",
     "dev": "nodemon",
-    "start": "ts-node src/app.ts"
+    "start": "ts-node src/app.ts",
+    "clean": "rm -fr dist",
+    "build": "npm run clean && tsc --project tsconfig.build.json && npm run bundle:esm && npm run bundle:esm:min && npm run bundle:umd && npm run bundle:umd:min && npm run build:stats",
+    "build:stats": "(echo '\\033[35;3m' ; cd dist && ls -lh index*js index*gz | tail -n +2 | awk '{print $5,$9}')",
+    "bundle:esm": "rollup dist/Emulator/Block.js --file dist/index.js --format iife",
+    "bundle:esm:min": "terser --ecma 6 --compress --mangle -o dist/index.min.js -- dist/index.js && gzip -9 -c dist/index.min.js > dist/index.min.js.gz",
+    "bundle:umd": "rollup dist/Emulator/Block.js --file dist/index.umd.js --format umd --name sayHello",
+    "bundle:umd:min": "terser --ecma 6 --compress --mangle -o dist/index.umd.min.js -- dist/index.umd.js && gzip -9 -c dist/index.umd.min.js > dist/index.umd.min.js.gz"
   },
   "keywords": [],
   "author": "",
@@ -18,11 +25,18 @@
     "@types/node": "^16.7.2",
     "acorn": "^8.4.1",
     "acorn-walk": "^8.1.1",
+    "babel-cli": "^6.26.0",
+    "escodegen": "^2.0.0",
     "escope": "^3.6.0",
     "espree": "^8.0.0",
     "estraverse": "^5.2.0",
     "nodemon": "^2.0.12",
+    "rollup": "^2.56.3",
+    "terser": "^5.7.2",
     "ts-node": "^10.2.1",
     "typescript": "^4.3.5"
+  },
+  "dependencies": {
+    "babel-preset-es2015": "^6.24.1"
   }
 }
