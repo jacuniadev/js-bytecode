@@ -9,11 +9,22 @@ let construct = "object" == typeof Reflect && "function" == typeof Reflect.const
     return new(Function.prototype.bind.apply(n, i));
 }
 
+let decode = typeof(atob) === "function" ? function(base64) {
+    var binary_string = atob(base64);
+    var len = binary_string.length;
+    var bytes = new Uint8Array(len);
+    for (var i = 0; i < len; i++) {
+        bytes[i] = binary_string.charCodeAt(i);
+    }
+    return bytes;
+} : function(str){ return new Uint8Array(Buffer.from(str, "base64"))};
+
 function testIsGlobalPropOrFunction(n) {
     n in globalScope || function(n) {
         throw new ReferenceError(n + " is not defined")
     }(n)
 }
+
 let __scopes = null;
 let __program = null;
 
@@ -131,7 +142,6 @@ a[Op.SetObjectProperty] = function(block){
 a[Op.AssignValue] = function(block){
     let index = block.readI32();
     let value = block.stack.pop();
-    //block.parent && //block.log(block.parent.definitions);
     block.definitions[index].value = value;
     //block.log(`ASSIGN ${typeof(value) === "string" || typeof(value) === "number" ? value : typeof(value)} -> $${index}`);
     
@@ -176,9 +186,10 @@ a[Op.JumpToBlock] = function(block){
 a[Op.JumpIfFalse] = function(block){
     let dst = block.readI32();
     let val = block.stack.pop();
+    //block.log(`[JMP] From: ${block.ip} to @${dst}`);
     if(!val) block.ip = dst;
-    
 }
+
 a[Op.New] = function(block){
     let totalArgs = block.readI32();
     let args = new Array(totalArgs);
@@ -318,18 +329,8 @@ a[Op.RaiseExponent] = function(block){
     block.stack.push(left ** right);
 }
 
-function _base64ToArrayBuffer(base64) {
-    var binary_string = atob(base64);
-    var len = binary_string.length;
-    var bytes = new Uint8Array(len);
-    for (var i = 0; i < len; i++) {
-        bytes[i] = binary_string.charCodeAt(i);
-    }
-    return bytes;
-}
-
 let strings = [];
-var bytes = _base64ToArrayBuffer(__program);
+var bytes = decode(__program);
 let __F64__ = new Float64Array(1);
 let __U8__ = new Uint8Array(__F64__.buffer);
 
@@ -435,36 +436,35 @@ class Block{
         return new Block(blockId, this);
     }
 
-    /*log(...args){
+    log(...args){
         return;
         let space = new Array(this.blockId * 4).join(" ");
         console.log(space, ...args);
-    }*/
+    }
 
     makeFn(){
         var that = this;
         return that.fn || (that.fn = function() {
             //if its the first scope that is running...
             if (that.U > 0) {
+
                 that.U = 0;
-                
                 that.returnRegister = undefined;
 
                 for (let i = 0; i < that.definitions.length; i++) that.definitions[i] = {
                     value: undefined
                 };
 
-                //NO FUCKING CLUE
+                
                 for (let i = 0; i < that.inheretedDefinitions.length; i++) that.definitions[that.inheretedDefinitions[i][0]] = that.inheretedDefinitions[i][1];
 
                 //copy arguments onto the stack first on, last off style
                 that.args = arguments;
                 that.stack = [];
+
                 for (let i = 0; i < that.args.length; i++) that.stack[that.args.length - i - 1] = that.args[i];
 
                 that.scope = this;
-
-                //no fucking clue what this shit is
                 that.ip = that.startOffset;
 
                 return that.run();
@@ -479,7 +479,6 @@ class Block{
             that.S = [];
             that.U = 0;
             that.returnRegister = undefined;
-            
             let scope = __scopes[that.blockId];
 
             //reset the definitions
@@ -487,11 +486,10 @@ class Block{
                 value: undefined
             };
 
-            //no clue what the fuck this does
             for (let i = 0; i < that.inheretedDefinitions.length; i++) that.definitions[that.inheretedDefinitions[i][0]] = that.inheretedDefinitions[i][1];
 
             that.args = arguments;
-            that.definitions = [];
+            that.stack = []; //this seems to be a problem statement
             for (let i = 0; i < that.args.length; i++) that.stack[that.args.length - i - 1] = that.args[i];
 
             that.scope = this;
@@ -518,10 +516,11 @@ class Block{
     run(){
         try{
             for (; this.U < 1;) {
-                //let op = this.ip;
+                let op = this.ip;
                 let header = bytes[this.ip++];
+
+                this.log("[" + op + "] " + Op[header]);
                 a[header](this);
-                //this.log("[" + op + "] " + Op[header]);
                 /*switch(header){
                     case Op.CreateFunction: {
                         let blockid = this.readI32();

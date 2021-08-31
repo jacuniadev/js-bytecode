@@ -7,6 +7,7 @@ import { traverse } from "estraverse";
 import {generate} from "escodegen";
 import { getShit } from "./getShit";
 import { minify } from "terser";
+import { Debugger } from "./Debugger";
 
 let templatePath = path.join(__dirname, "../dist/");
 let template = fs.readFileSync(path.join(templatePath, "/index.js"), {encoding: "utf-8"});
@@ -25,34 +26,19 @@ function makeArray(aray){
 }
 
 let [program, scopes] = getShit(`
-
-window.rc4Encrypt = function(key, pt) {
-    var s = new Array();
-    for (var i = 0; i < 256; i = i + 1) {
-        s[i] = i;
+function test(){
+    this.log = function(){
+        console.log(this, "helloworld");
     }
-    var j = 0;
-    var x;
-    for (i = 0; i < 256; i = i + 1) {
-        j = (j + s[i] + key.charCodeAt(i % key.length)) % 255;
-        x = s[i];
-        s[i] = s[j];
-        s[j] = x;
-    }
-    i = 0;
-    j = 0;
-    var ct = '';
-    for (var y = 0; y < pt.length; y = y + 1) {
-        i = (i + 1) % 255;
-        j = (j + s[i]) % 255;
-        x = s[i];
-        s[i] = s[j];
-        s[j] = x;
-        ct = ct + String.fromCharCode(pt.charCodeAt(y) ^ s[(s[i] + s[j]) % 255]);
-    }
-    return ct;
-};
+}
+var a = new test();
+console.log(a.log());
 `);
+
+let de = new Debugger();
+de.debug(new Uint8Array(Buffer.from(<string>program, "base64")));
+console.log(de.data);
+//de.debug());
 
 let throwId = 0;
 traverse(<any>ast, {
@@ -66,7 +52,7 @@ traverse(<any>ast, {
             }
         }
         if(node.type === "ThrowStatement"){
-            node.argument = <any>makeLiteral(throwId++);
+            //node.argument = <any>makeLiteral(throwId++);
         }
     }
 })
@@ -78,5 +64,7 @@ async function writeMin(){
     var result = await minify(output, { sourceMap: true });
     fs.writeFileSync(path.join(templatePath, "out.min.js"), result.code);
 }
+
+Function(output)();
 
 writeMin();

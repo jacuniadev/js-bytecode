@@ -340,6 +340,7 @@ export class Generator{
             if(label.destination !== null){
                 label.destination += this.getGeneratorOffset(this);
                 label.writeI32(label.destination);
+                console.log(`Setting label origin: ${label.start} to ${label.destination}`);
             }
         })
         let data = new Uint8Array(this._buffer, 0, this.offset);

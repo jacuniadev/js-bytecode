@@ -1,4 +1,57 @@
-export const Op = {
+export enum Op {
+    Jump,
+    END,
+    I8,
+    I32,
+    BOOL,
+    String,
+    JumpIfFalse,
+    JumpToBlock,
+
+    //binary expressions
+    LessThan,
+    LessThanOrEqual,
+    GreaterThan,
+    GreaterThanOrEqual,
+    EqualTo,
+    EqualToStrict,
+    NotEqualTo,
+    NotEqualToStrict,
+    Add,
+    Sub,
+    Divide,
+    Multiply,
+    Remainder,
+    BitAnd,
+    BitOr,
+    BitXOR,
+    BitLeftShift,
+    BitRightShift,
+    BitZeroFillRightShift,
+    RaiseExponent,
+
+    AssignValue,
+    AssignValueToGlobal,
+    GetVariableValue,
+    GetObjectProperty,
+    SetObjectProperty,
+    GetGlobalVariableValue,
+    CreateFunction,
+    Call,
+    ObjectPropertyCall,
+    ReturnValue,
+    RegisterString,
+
+    MakeArray,
+    MakeObject,
+    This,
+    GetArguments,
+    Debugger,
+    PlusPlus,
+    New,
+};
+
+/*export const Op: {[key: string]: number} = {
     Jump: 1,
     END: 2,
     I8: 3,
@@ -49,4 +102,4 @@ export const Op = {
     Debugger: 44,
     PlusPlus: 45,
     New: 46,
-};
+};*/
