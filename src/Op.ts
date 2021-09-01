@@ -1,4 +1,4 @@
-export enum Op {
+export enum Op{
     Jump,
     END,
     I8,
@@ -7,6 +7,7 @@ export enum Op {
     String,
     JumpIfFalse,
     JumpToBlock,
+    JumpToStart,
 
     //binary expressions
     LessThan,
@@ -47,8 +48,20 @@ export enum Op {
     This,
     GetArguments,
     Debugger,
+
     PlusPlus,
+    MinusMinus,
+    PropertyPlusPlus,
+    PropertyMinusMinus,
+
+    GlobalScope,
     New,
+
+    Or,
+    And,
+    NotSymbol,
+    NegateSymbol,
+
 };
 
 /*export const Op: {[key: string]: number} = {

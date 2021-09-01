@@ -142,10 +142,38 @@ a[Op.SetObjectProperty] = function(block){
 a[Op.AssignValue] = function(block){
     let index = block.readI32();
     let value = block.stack.pop();
-    block.definitions[index].value = value;
+    block.stack.push(block.definitions[index].value = value);
     //block.log(`ASSIGN ${typeof(value) === "string" || typeof(value) === "number" ? value : typeof(value)} -> $${index}`);
     
 }
+
+a[Op.Or] = function(block){
+    let r = block.stack.pop();
+    let l = block.stack.pop();
+    block.stack.push(r || l);
+    //block.log("||")
+}
+
+
+a[Op.And] = function(block){
+    let r = block.stack.pop();
+    let l = block.stack.pop();
+    block.stack.push(r && l);
+    //block.log("&&")
+}
+
+a[Op.NotSymbol] = function(block){
+    let val = block.stack.pop();
+    block.stack.push(!val);
+    //block.log("!")
+}
+
+a[Op.NegateSymbol] = function(block){
+    let val = block.stack.pop();
+    block.stack.push(~val);
+    //block.log("~")
+}
+
 a[Op.GetVariableValue] = function(block){
     let index = block.readI32();
     let value = block.definitions[index].value;
@@ -181,7 +209,6 @@ a[Op.JumpToBlock] = function(block){
     let blockid = block.readI32();
     //block.log(`JMP to Block ->${blockid}`);
     block.runChild(blockid).makeFn().apply(block.scope);
-    
 }
 a[Op.JumpIfFalse] = function(block){
     let dst = block.readI32();
@@ -245,14 +272,13 @@ a[Op.EqualToStrict] = function(block){
 a[Op.NotEqualTo] = function(block){
     let right = block.stack.pop();
     let left = block.stack.pop();
+    //block.log(`Comparing ${right} ${left}`);
     block.stack.push(left != right);
-    
 }
 a[Op.NotEqualToStrict] = function(block){
     let right = block.stack.pop();
     let left = block.stack.pop();
     block.stack.push(left !== right);
-    
 }
 a[Op.Add] = function(block){
     let right = block.stack.pop();
@@ -270,8 +296,8 @@ a[Op.Multiply] = function(block){
     let right = block.stack.pop();
     let left = block.stack.pop();
     block.stack.push(left * right);
-    
 }
+
 a[Op.Divide] = function(block){
     let right = block.stack.pop();
     let left = block.stack.pop();
@@ -288,7 +314,6 @@ a[Op.BitAnd] = function(block){
     let right = block.stack.pop();
     let left = block.stack.pop();
     block.stack.push(left & right);
-    
 }
 a[Op.BitOr] = function(block){
     let right = block.stack.pop();
@@ -319,8 +344,12 @@ a[Op.BitRightShift] = function(block){
 a[Op.BitZeroFillRightShift] = function(block) {
     let right = block.stack.pop();
     let left = block.stack.pop();
-    block.stack.push(left >>> right);
-    
+    block.stack.push(left >>> right);   
+}
+
+a[Op.PlusPlus] = function(block){
+    let varid = block.readI32();
+    block.stack.push(block.definitions[varid].value++);
 }
 
 a[Op.RaiseExponent] = function(block){
@@ -328,6 +357,11 @@ a[Op.RaiseExponent] = function(block){
     let left = block.stack.pop();
     block.stack.push(left ** right);
 }
+
+a[Op.JumpToStart] = function(block){
+    block.ip = 0;
+}
+
 
 let strings = [];
 var bytes = decode(__program);
@@ -359,6 +393,7 @@ class Block{
     public I: Array<any> = [];
 
     constructor(blockId: number, parent: (Block | null) = null){
+        
         this.blockId = blockId;
         let block = __scopes[blockId];
         let _blockId = block[0];
@@ -436,11 +471,10 @@ class Block{
         return new Block(blockId, this);
     }
 
-    log(...args){
-        return;
+    /*log(...args){
         let space = new Array(this.blockId * 4).join(" ");
         console.log(space, ...args);
-    }
+    }*/
 
     makeFn(){
         var that = this;
@@ -516,10 +550,9 @@ class Block{
     run(){
         try{
             for (; this.U < 1;) {
-                let op = this.ip;
+                //let op = this.ip;
                 let header = bytes[this.ip++];
-
-                this.log("[" + op + "] " + Op[header]);
+               // this.log("[" + op + "] " + Op[header], header);
                 a[header](this);
                 /*switch(header){
                     case Op.CreateFunction: {

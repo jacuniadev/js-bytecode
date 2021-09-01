@@ -1,6 +1,6 @@
 import { traverse } from "estraverse";
 import { BlockStatement, Identifier, Literal, Node, VariableDeclarator, IfStatement } from "estree";
-import { GenerateArrayExpression, GenerateAssignmentExpression, GenerateBinaryExpression, GenerateBlockStatement, GenerateCallExpression, GenerateDebuggerStatement, GenerateExpressionStatement, GenerateForStatement, GenerateFunctionDeclaration, GenerateFunctionExpression, GenerateIdentifier, GenerateIfStatement, GenerateLiteral, GenerateMemberExpression, GenerateNewExpression, GenerateObjectExpression, GenerateProgram, GenerateProperty, GenerateReturnStatement, GenerateThisExpression, GenerateUpdateExpression, GenerateVariableDeclaration, GenerateVariableDeclarator, GenerateWhileStatement } from "./ASTCodegen";
+import { GenerateArrayExpression, GenerateAssignmentExpression, GenerateBinaryExpression, GenerateBlockStatement, GenerateBreakStatement, GenerateCallExpression, GenerateDebuggerStatement, GenerateExpressionStatement, GenerateForStatement, GenerateFunctionDeclaration, GenerateFunctionExpression, GenerateIdentifier, GenerateIfStatement, GenerateLiteral, GenerateLogicalExpression, GenerateMemberExpression, GenerateNewExpression, GenerateObjectExpression, GenerateProgram, GenerateProperty, GenerateReturnStatement, GenerateSwitchStatement, GenerateThisExpression, GenerateUnaryExpression, GenerateUpdateExpression, GenerateVariableDeclaration, GenerateVariableDeclarator, GenerateWhileStatement } from "./ASTCodegen";
 import { Label } from "./Label";
 import { Op } from "./Op";
 import { f64Bytes, i32Bytes, i8Bytes, isValidI32, isValidI8 } from "./Utils";
@@ -61,6 +61,43 @@ export class Generator{
         return this.set.get(name);
     }
 
+
+    figureOutScope(){
+        //find all variables defined in a scopet
+        let that = this;
+        traverse(this.node, {
+            enter(node){
+                if(node.type === "BlockStatement") return this.skip();
+                if(node.type === "VariableDeclarator"){
+                    let id = node.id;
+                    if(id.type === "Identifier"){
+                        console.log("Declared", id.name);
+                        that.declareVariable(id.name);
+                    }
+                }else if(node.type === "FunctionDeclaration"){
+                    let id = node.id;
+                    if(id.type === "Identifier"){
+                        console.log("Declared", id.name);
+                        that.declareVariable(id.name);
+                    }
+                }
+            }
+        })
+    }
+
+    child(node: Node): Generator{
+        let child: Generator = new Generator(node);
+        //child.set = new Map(this.set);
+        //child.declarations = JSON.parse(JSON.stringify(this.declarations));
+
+        child.set = new Map();
+        child.declarations = [];
+
+        child.parent = this;
+        this.children.push(child);
+        return child;
+    }
+
     declareVariable(name: string): number{
         if(!this.set.has(name)){
             let id = this.declarations.length;
@@ -78,6 +115,7 @@ export class Generator{
 
     constructor(node: Node){
         this.node = node;
+        this.figureOutScope();
     }
 
     __writeI8(n: number){
@@ -204,6 +242,36 @@ export class Generator{
         this.__writeI8(Op.Divide);
     }
 
+    emitNotSymbol(){
+        this.__writeI8(Op.NotSymbol);
+    }
+
+    emitNegateSymbol(){
+        this.__writeI8(Op.NegateSymbol);
+    }
+
+    emitOr(){
+        this.__writeI8(Op.Or);
+    }
+
+    emitAnd(){
+        this.__writeI8(Op.And);
+    }
+
+    emitPlusPlus(varid){
+        this.__writeI8(Op.PlusPlus);
+        this.__writeI32(varid);
+    }
+
+    emitGlobal(){
+        this.__writeI8(Op.GlobalScope);
+    }
+
+    emitMinusMinus(varid){
+        this.__writeI8(Op.MinusMinus);
+        this.__writeI32(varid);
+    }
+
     emitMultiply(){
         this.__writeI8(Op.Multiply);
     }
@@ -306,15 +374,6 @@ export class Generator{
         else this.emitF64(num);
     }
 
-    child(node: Node): Generator{
-        let child: Generator = new Generator(node);
-        child.set = new Map(this.set);
-        child.declarations = JSON.parse(JSON.stringify(this.declarations));
-        child.parent = this;
-        this.children.push(child);
-        return child;
-    }
-
     makeLabel(byteLength: number): Label{
         let label = new Label(this, byteLength);
         this.labels.push(label);
@@ -340,34 +399,13 @@ export class Generator{
             if(label.destination !== null){
                 label.destination += this.getGeneratorOffset(this);
                 label.writeI32(label.destination);
-                console.log(`Setting label origin: ${label.start} to ${label.destination}`);
+                //console.log(`Setting label origin: ${label.start} to ${label.destination}`);
             }
         })
         let data = new Uint8Array(this._buffer, 0, this.offset);
+        console.log(data);
         ar.push(...data);
         this.children.forEach(child => child._getData(ar));
-    }
-
-    figureOutScope(){
-        //find all variables defined in a scopet
-        let that = this;
-        traverse(this.node, {
-            enter(node){
-                if(node.type === "VariableDeclarator"){
-                    let id = node.id;
-                    if(id.type === "Identifier"){
-                        console.log("Declared", id.name);
-                        that.declareVariable(id.name);
-                    }
-                }else if(node.type === "FunctionDeclaration"){
-                    let id = node.id;
-                    if(id.type === "Identifier"){
-                        console.log("Declared", id.name);
-                        that.declareVariable(id.name);
-                    }
-                }
-            }
-        })
     }
 
     generate(node: Node){
@@ -432,6 +470,12 @@ export class Generator{
             case "ForStatement":
                 GenerateForStatement(node, this);
                 break;
+            case "SwitchStatement":
+                GenerateSwitchStatement(node, this);
+                break;
+            case "BreakStatement":
+                GenerateBreakStatement(node, this);
+                break;
             case "ObjectExpression":
                 GenerateObjectExpression(node, this);
                 break;
@@ -441,8 +485,14 @@ export class Generator{
             case "NewExpression":
                 GenerateNewExpression(node, this);
                 break;
+            case "UnaryExpression":
+                GenerateUnaryExpression(node, this);
+                break;
             case "Property":
                 GenerateProperty(node, this);
+                break;
+            case "LogicalExpression":
+                GenerateLogicalExpression(node, this);
                 break;
             case "EmptyStatement":
                 break;
@@ -452,14 +502,6 @@ export class Generator{
     }
 
     build(): Uint8Array{
-
-
-        this.children = [];
-        this.declarations = [];
-        this.set = new Map();
-
-        this.figureOutScope();
-
         this.generate(this.node);
         let data = [];
         this._getData(data); //recursivly add the children's data into this

@@ -6,12 +6,12 @@ export const isValidI8 = (n: number): boolean => (n >= 0 && n <= 0xff && isWhole
 export const isValidI32 = (n: number): boolean => (n >= 0 && n <= 0xffffffff && isWholeNumber(n));
 
 export function i8Bytes(n: number): number{
-    if(!isValidI8(n)) throw("Invalid i8 provided: " + n);
+    if(!isValidI8(n)) throw new Error("Invalid i8 provided: " + n);
     return n;
 }
 
 export function i32Bytes(n: number): Uint8Array{
-    if(!isValidI32(n)) throw("Invlaid i32 provided: " + n);
+    if(!isValidI32(n)) throw new Error("Invlaid i32 provided: " + n);
     return new Uint8Array([
         n & 0xff,
         (n >> 8) & 0xff,

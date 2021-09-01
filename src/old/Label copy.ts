@@ -1,16 +1,16 @@
-import { Scope } from "./Parserv2";
+import { Generator } from "./Generator";
 import { i32Bytes, i8Bytes } from "./Utils";
 
 export class Label {
     public reference: Uint8Array;
     public offset = 0;
-    public scope: Scope = null;
+    public generator: Generator = null;
     public byteLength = 0;
     public destination: number = null;
     public start = 0;
 
-    constructor(scope: Scope, byteLength: number){
-        this.scope = scope;
+    constructor(generator: Generator, byteLength: number){
+        this.generator = generator;
         this.byteLength = byteLength;
     }
 
@@ -19,14 +19,14 @@ export class Label {
     }
 
     setOrigin(){
-        let scope = this.scope;
-        this.start = scope.offset;
-        this.reference = new Uint8Array(scope._buffer, this.start, this.byteLength);
-        scope.offset += this.byteLength;
+        let generator = this.generator;
+        this.start = generator.offset;
+        this.reference = new Uint8Array(generator._buffer, this.start, this.byteLength);
+        generator.offset += this.byteLength;
     }
 
     setTarget(){
-        this.destination = this.scope.offset;
+        this.destination = this.generator.offset;
     }
     
     writeI8(n: number){

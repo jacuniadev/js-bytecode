@@ -125,6 +125,28 @@ a[Op.BitZeroFillRightShift] = function(block) {
 a[Op.RaiseExponent] = function(block){
 }
 
+a[Op.PlusPlus] = function(block){
+    block.readI32();
+}
+
+a[Op.Or] = function(block){
+   
+}
+
+a[Op.NotSymbol] = function(block){
+   
+}
+
+a[Op.NegateSymbol] = function(block){
+   
+}
+
+a[Op.And] = function(block){
+  
+}
+
+
+
 export class Debugger {
 
     public u8: Uint8Array;

@@ -1,198 +1,602 @@
-import { BlockStatement, NewExpression, DebuggerStatement, ArrayExpression, ThisExpression, FunctionExpression, Property, MemberExpression, ForStatement, ObjectExpression, UnaryExpression, UpdateExpression, ReturnStatement, CallExpression, FunctionDeclaration, Identifier, AssignmentExpression, VariableDeclaration, WhileStatement, BinaryExpression, Literal, Node, VariableDeclarator, IfStatement, Program, ExpressionStatement } from "estree";
-import { Generator } from "./Generator";
+import { BlockStatement, BreakStatement, SwitchStatement, LogicalExpression, NewExpression, DebuggerStatement, ArrayExpression, ThisExpression, FunctionExpression, Property, MemberExpression, ForStatement, ObjectExpression, UnaryExpression, UpdateExpression, ReturnStatement, CallExpression, FunctionDeclaration, Identifier, AssignmentExpression, VariableDeclaration, WhileStatement, BinaryExpression, Literal, Node, VariableDeclarator, IfStatement, Program, ExpressionStatement } from "estree";
+import { Op } from "./Op";
+import { Scope } from "./Parserv2";
+import { f64Bytes, i32Bytes, i8Bytes, isValidI32, isValidI8 } from "./Utils";
 
-export function GenerateLiteral(node: Literal, generator: Generator){
+export function __writeI8(scope: Scope, n: number){
+    let i8 = i8Bytes(n);
+    scope.data[scope.offset++] = i8;
+}
+
+export function __writeI32(scope: Scope, n: number){
+    let i32 = i32Bytes(n);
+    scope.data[scope.offset++] = i32[0];
+    scope.data[scope.offset++] = i32[1];
+    scope.data[scope.offset++] = i32[2];
+    scope.data[scope.offset++] = i32[3];
+}
+
+export function __writeF64(scope: Scope, n: number){
+    let f64 = f64Bytes(n);
+    scope.data[scope.offset++] = f64[0];
+    scope.data[scope.offset++] = f64[1];
+    scope.data[scope.offset++] = f64[2];
+    scope.data[scope.offset++] = f64[3];
+    scope.data[scope.offset++] = f64[4];
+    scope.data[scope.offset++] = f64[5];
+    scope.data[scope.offset++] = f64[6];
+    scope.data[scope.offset++] = f64[7];
+}
+
+export function emitMakeArray(scope: Scope, nodes: number){
+    __writeI8(scope, Op.MakeArray);
+    __writeI32(scope, nodes);
+}
+
+export function emitThis(scope: Scope){
+    __writeI8(scope, Op.This);
+}
+
+export function emitDebugger(scope: Scope){
+    __writeI8(scope, Op.Debugger);
+}
+
+export function emitSetObjectProperty(scope: Scope){
+    __writeI8(scope, Op.SetObjectProperty);
+}
+
+export function emitGetObjectProperty(scope: Scope){
+    __writeI8(scope, Op.GetObjectProperty);
+}
+
+export function emitGetGlobalVariableValue(scope: Scope){
+    __writeI8(scope, Op.GetGlobalVariableValue);
+}
+
+export function emitAssignValueToGlobal(scope: Scope){
+    __writeI8(scope, Op.AssignValueToGlobal);
+}
+
+export function emitGetVariableValue(scope: Scope, varid: number){
+    __writeI8(scope, Op.GetVariableValue);
+    __writeI32(scope, varid);
+}
+
+export function emitString(scope: Scope, stringid){
+    __writeI8(scope, Op.String);
+    __writeI32(scope, stringid);
+}
+
+export function emitEND(scope: Scope){
+    __writeI8(scope, Op.END);
+}
+
+export function emitReturn(scope: Scope){
+    __writeI8(scope, Op.ReturnValue);
+}
+
+export function emitJMP(scope: Scope){
+    __writeI8(scope, Op.Jump);
+}
+
+export function emitJumpIfFalse(scope: Scope) {
+    __writeI8(scope, Op.JumpIfFalse);
+}
+
+export function emitLessThan(scope: Scope){
+    __writeI8(scope, Op.LessThan);
+}
+
+export function emitLessThanOrEqual(scope: Scope){
+    __writeI8(scope, Op.LessThanOrEqual);
+}
+
+export function emitEqualTo(scope: Scope){
+    __writeI8(scope, Op.EqualTo);
+}
+
+export function emitEqualToStrict(scope: Scope){
+    __writeI8(scope, Op.EqualToStrict);
+}
+
+export function emitNotEqualTo(scope: Scope){
+    __writeI8(scope, Op.NotEqualTo);
+}
+
+export function emitNotEqualToStrict(scope: Scope){
+    __writeI8(scope, Op.NotEqualToStrict);
+}
+
+export function emitGreaterThan(scope: Scope){
+    __writeI8(scope, Op.GreaterThan);
+}
+
+export function emitGreaterThanOrEqual(scope: Scope){
+    __writeI8(scope, Op.GreaterThanOrEqual);
+}
+
+export function emitAdd(scope: Scope){
+    __writeI8(scope, Op.Add);
+}
+
+export function emitSub(scope: Scope){
+    __writeI8(scope, Op.Sub);
+}
+
+export function emitDivide(scope: Scope){
+    __writeI8(scope, Op.Divide);
+}
+
+export function emitNotSymbol(scope: Scope){
+    __writeI8(scope, Op.NotSymbol);
+}
+
+export function emitNegateSymbol(scope: Scope){
+    __writeI8(scope, Op.NegateSymbol);
+}
+
+export function emitOr(scope: Scope){
+    __writeI8(scope, Op.Or);
+}
+
+export function emitAnd(scope: Scope){
+    __writeI8(scope, Op.And);
+}
+
+export function emitPlusPlus(scope: Scope, varid){
+    __writeI8(scope, Op.PlusPlus);
+    __writeI32(scope, varid);
+}
+
+export function emitGlobal(scope: Scope){
+    __writeI8(scope, Op.GlobalScope);
+}
+
+export function emitMinusMinus(scope: Scope, varid){
+    __writeI8(scope, Op.MinusMinus);
+    __writeI32(scope, varid);
+}
+
+export function emitMultiply(scope: Scope){
+    __writeI8(scope, Op.Multiply);
+}
+
+export function emitRemainder(scope: Scope){
+    __writeI8(scope, Op.Remainder);
+}
+
+export function emitBitAnd(scope: Scope){
+    __writeI8(scope, Op.BitAnd);
+}
+
+export function emitBitOr(scope: Scope){
+    __writeI8(scope, Op.BitOr);
+}
+
+export function emitBitXOR(scope: Scope){
+    __writeI8(scope, Op.BitXOR);
+}
+
+export function emitBitLeftShift(scope: Scope){
+    __writeI8(scope, Op.BitLeftShift);
+}
+
+export function emitBitRightShift(scope: Scope){
+    __writeI8(scope, Op.BitRightShift);
+}
+
+export function emitBitZeroFillRightShift(scope: Scope){
+    __writeI8(scope, Op.BitZeroFillRightShift);
+}
+
+export function emitRaiseExponent(scope: Scope){
+    __writeI8(scope, Op.RaiseExponent);
+}
+
+export function emitI8(scope: Scope, n: number){
+    __writeI8(scope, Op.I8);
+    __writeI8(scope, n);
+}
+
+export function emitNewExpression(scope: Scope, totalArgs: number){
+    __writeI8(scope, Op.New);
+    __writeI32(scope, totalArgs);
+}
+
+export function emitJumpToBlock(scope: Scope, n: number){
+    __writeI8(scope, Op.JumpToBlock);
+    __writeI32(scope, n);
+}
+
+export function emitI32(scope: Scope, n: number){
+    __writeI8(scope, Op.I32);
+    __writeI32(scope, n);
+}
+
+export function emitF64(scope: Scope, n: number){
+    __writeI8(scope, Op.I32);
+    __writeF64(scope, n);
+}
+
+export function emitAssignValue(scope: Scope, varid: number){
+    __writeI8(scope, Op.AssignValue);
+    __writeI32(scope, varid);
+}
+
+export function emitCreateFunction(scope: Scope, blockid: number){
+    __writeI8(scope, Op.CreateFunction);
+    __writeI32(scope, blockid);
+}
+
+export function emitGetArguments(scope: Scope, index: number){
+    __writeI8(scope, Op.GetArguments);
+    __writeI8(scope, index);
+}
+
+export function emitBOOL(scope: Scope, bool: boolean){
+    __writeI8(scope, Op.BOOL);
+    __writeI8(scope, +bool);
+}
+
+export function emitMakeObject(scope: Scope, props: number){
+    __writeI8(scope, Op.MakeObject);
+    __writeI32(scope, props);
+}
+
+export function emitObjectPropertyCall(scope: Scope, totalArgs: number){
+    __writeI8(scope, Op.ObjectPropertyCall);
+    __writeI8(scope, totalArgs);
+}
+
+export function emitCall(scope: Scope, totalArgs: number){
+    __writeI8(scope, Op.Call);
+    __writeI8(scope, totalArgs);
+}
+
+export function loadNumber(scope: Scope, num: number){
+    if(isValidI8(num)) emitI8(scope, num);
+    else if(isValidI32(num)) emitI32(scope, num);
+    else emitF64(scope, num);
+}
+
+
+export function GenerateLiteral(node: Literal, scope: Scope){
     if(typeof(node.value) === "string"){
-        let id = generator.stringManager.add(node.value);
-        generator.emitString(id);
+        let id = scope.getStringId(node.value);
+        emitString(scope, id);
     }
-    else if(typeof(node.value) === "number") generator.loadNumber(node.value);
-    else if(typeof(node.value) === "boolean") generator.emitBOOL(node.value);
+    else if(typeof(node.value) === "number") loadNumber(scope, node.value);
+    else if(typeof(node.value) === "boolean") emitBOOL(scope, node.value);
     else throw("Unsupported literal type");
 }
 
-export function GenerateWhileStatement(node: WhileStatement, generator: Generator){
+export function GenerateWhileStatement(node: WhileStatement, scope: Scope){
     
-    const test_label = generator.makeLabel(Uint32Array.BYTES_PER_ELEMENT);
+    const test_label = scope.makeLabel(Uint32Array.BYTES_PER_ELEMENT);
     
     test_label.setTarget();
 
-    generator.generate(node.test);
+    scope.generate(node.test);
     
-    generator.emitJumpIfFalse();
+    emitJumpIfFalse(scope);
 
-    let body_label = generator.makeLabel(Uint32Array.BYTES_PER_ELEMENT);
+    let body_label = scope.makeLabel(Uint32Array.BYTES_PER_ELEMENT);
     body_label.setOrigin();
 
-    generator.generate(node.body);
+    scope.generate(node.body);
 
-    generator.emitJMP();
+    emitJMP(scope);
     test_label.setOrigin();
 
     body_label.setTarget();
     
 }
 
-export function GenerateThisExpression(node: ThisExpression, generator: Generator){
-    generator.emitThis();
+export function GenerateThisExpression(node: ThisExpression, scope: Scope){
+    emitThis(scope);
 }
 
-export function GenerateReturnStatement(node: ReturnStatement, generator: Generator){
-    if(node.argument) generator.generate(node.argument);
-    generator.emitReturn();
+export function GenerateReturnStatement(node: ReturnStatement, scope: Scope){
+    if(node.argument) scope.generate(node.argument);
+    emitReturn(scope);
 }
 
-export function GenerateCallExpression(node: CallExpression, generator: Generator){
+export function GenerateCallExpression(node: CallExpression, scope: Scope){
     let callee = node.callee;
-    node.arguments.forEach(child => generator.generate(child));
+    node.arguments.forEach(child => scope.generate(child));
     switch(callee.type){
         case "Identifier": {
-            let id = generator.getVariableIndex(callee.name);
+            let id = scope.getVariableId(callee.name);
             if(id === -1){
-                let id = generator.stringManager.add(callee.name);
-                generator.emitString(id);
-                generator.emitGetGlobalVariableValue();
+                let id = scope.getStringId(callee.name);
+                emitString(scope, id);
+                emitGetGlobalVariableValue(scope);
             }else{
-                generator.emitGetVariableValue(id);
+                emitGetVariableValue(scope, id);
             }
-            generator.emitCall(node.arguments.length);
+            emitCall(scope, node.arguments.length);
             break;
         }
         case "MemberExpression": {
             if(callee.property.type === "Identifier"){
                 //load its property as a string
-                let id = generator.stringManager.add(callee.property.name);
-                generator.emitString(id);
+                let id = scope.getStringId(callee.property.name);
+                emitString(scope, id);
             }else{
-                generator.generate(callee.property);
+                scope.generate(callee.property);
             }
-            generator.generate(callee.object);
-            generator.emitObjectPropertyCall(node.arguments.length);
+            scope.generate(callee.object);
+            emitObjectPropertyCall(scope, node.arguments.length);
             break;
         }
         default:
             throw("Unsupported callee type");
     }
 }
-export function GenerateFunctionExpression(node: FunctionExpression, generator: Generator){
+export function GenerateFunctionExpression(node: FunctionExpression, scope: Scope){
     
-    if(generator.node === node){
+    if(scope.node === node){
         let argumentId = 0;
         node.params.forEach(child => {
             if(child.type === "Identifier"){
                 //redeclare the variable under the new scope
-                let varid = generator.declareVariable(child.name);
-                generator.emitGetArguments(argumentId);
-                generator.emitAssignValue(varid);
+                console.log("entering");
+                let varid = scope.getVariableId(child.name);
+                console.log("Exciting", varid, child.name);
+                emitGetArguments(scope, argumentId);
+                emitAssignValue(scope, varid);
                 argumentId++;
 
             }else{
                 throw("Unknown paramater type");
-                generator.generate(child)
+                scope.generate(child)
             }
         });
-        generator.generate(node.body);
+        scope.generate(node.body);
     }else{
-        let child = generator.child(node);
+        let child = scope.makeChild(node);
         child.generate(child.node);
-        child.emitEND();
-        generator.emitCreateFunction(child.id);
+        emitEND(child);
+        emitCreateFunction(scope, child.id);
     }
 }
 
-export function GenerateFunctionDeclaration(node: FunctionDeclaration, generator: Generator){
+export function GenerateFunctionDeclaration(node: FunctionDeclaration, scope: Scope){
     
-    if(generator.node === node){
+    if(scope.node === node){
         let argumentId = 0;
         node.params.forEach(child => {
             if(child.type === "Identifier"){
                 //redeclare the variable under the new scope
-                let varid = generator.declareVariable(child.name);
-                generator.emitGetArguments(argumentId);
-                generator.emitAssignValue(varid);
+                let varid = scope.getVariableId(child.name);
+                emitGetArguments(scope, argumentId);
+                emitAssignValue(scope, varid);
                 argumentId++;
 
             }else{
                 throw("Unknown paramater type");
-                generator.generate(child)
+                scope.generate(child)
             }
         });
 
-        generator.generate(node.body);
+        scope.generate(node.body);
     }else{
-        let id = generator.declareVariable(node.id.name);
+        let id = scope.getVariableId(node.id.name);
 
-        let child = generator.child(node);
+        let child = scope.makeChild(node);
         child.generate(child.node);
-        child.emitEND();
+        emitEND(child);
     
-        generator.emitCreateFunction(child.id);
-        generator.emitAssignValue(id);
+        emitCreateFunction(scope, child.id);
+        emitAssignValue(scope, id);
     }
 }
 
-export function GenerateDebuggerStatement(node: DebuggerStatement, generator: Generator){
-    generator.emitDebugger();
+export function GenerateDebuggerStatement(node: DebuggerStatement, scope: Scope){
+    emitDebugger(scope);
 }
 
-export function GenerateNewExpression(node: NewExpression, generator: Generator){
-    generator.generate(node.callee);
-    node.arguments.forEach(child => generator.generate(child));
-    generator.emitNewExpression(node.arguments.length);
+export function GenerateNewExpression(node: NewExpression, scope: Scope){
+    scope.generate(node.callee);
+    node.arguments.forEach(child => scope.generate(child));
+    emitNewExpression(scope, node.arguments.length);
 }
 
-export function GenerateIdentifier(node: Identifier, generator: Generator){
-    let id = generator.getVariableIndex(node.name);
+export function GenerateIdentifier(node: Identifier, scope: Scope){
+    let id = scope.getVariableId(node.name);
 
     if(id === -1){ //its a global property...
-        let id = generator.stringManager.add(node.name);
-        generator.emitString(id);
-        generator.emitGetGlobalVariableValue();
+        let id = scope.getStringId(node.name);
+        emitString(scope, id);
+        emitGetGlobalVariableValue(scope);
     }else{
-        generator.emitGetVariableValue(id);
+        emitGetVariableValue(scope, id);
     }
 }
 
-export function GenerateAssignmentExpression(node: AssignmentExpression, generator: Generator){
-    generator.generate(node.right);
-    let left = node.left;
-    switch(left.type){
-        case "Identifier":
-            let id = generator.getVariableIndex(left.name);
-            if(id === -1){
-                let stringid = generator.stringManager.add(left.name);
-                generator.emitString(stringid);
-                generator.emitAssignValueToGlobal();
-            }else{
-                generator.emitAssignValue(id);
-            }
-            break;
-        case "MemberExpression": {
-
-            
-            generator.generate(left.object);
-            let property = left.property;
-            //if its computed, dont run that shit
-            if(property.type === "Identifier" && !left.computed){
-                let stringid = generator.stringManager.add(property.name);
-                generator.emitString(stringid);
-            }else{
-                generator.generate(left.property);
-            }
-            generator.emitSetObjectProperty();
+export function GenerateLogicalExpression(node: LogicalExpression, scope: Scope){
+    switch(node.operator){
+        case "||": {
+            scope.generate(node.left);
+            scope.generate(node.right);
+            emitOr(scope);
             break;
         }
-        default:
-            throw("Invalid assignment expression type");
+        case "&&": {
+            scope.generate(node.left);
+            scope.generate(node.right);
+            emitAnd(scope);
+            break;
+        }
+        default: 
+            throw("Unknown logical expression");
     }
 }
 
-export function GenerateVariableDeclarator(node: VariableDeclarator, generator: Generator){
-    if(node.init) generator.generate(node.init);
+export function GenerateBreakStatement(node: BreakStatement, scope: Scope){
+    emitEND(scope);
+}
+
+export function GenerateSwitchStatement(node: SwitchStatement, scope: Scope){
+    //return
+    if(node === scope.node){
+        let labels = [];
+        let cases = node.cases;
+        for(let i = 0; i < cases.length; i++){
+            var _case = cases[i];
+            if(_case.test){
+                scope.generate(node.discriminant);
+                scope.generate(_case.test)
+                emitNotEqualToStrict(scope);
+                emitJumpIfFalse(scope);
+                let label = scope.makeLabel(Uint32Array.BYTES_PER_ELEMENT);
+                label.setOrigin();
+                labels.push(label);
+            }else{
+                emitJMP(scope);
+                let defaultCaseJump = scope.makeLabel(Uint32Array.BYTES_PER_ELEMENT);
+                defaultCaseJump.setOrigin();
+                labels.push(defaultCaseJump);
+            }
+        }
+    
+        emitEND(scope);
+
+        for(let i = 0; i < cases.length; i++){
+            
+            labels[i].setTarget();
+            var _case = cases[i];
+            _case.consequent.forEach(child => scope.generate(child));
+        }
+    }else{
+        let child = scope.makeChild(node);
+        emitJumpToBlock(scope, child.id);
+        child.generate(child.node);
+        emitEND(child);    
+    }
+}
+
+export function GenerateAssignmentExpression(node: AssignmentExpression, scope: Scope){
+    scope.generate(node.right);
+    let left = node.left;
+    if(node.operator === "="){
+        switch(left.type){
+            case "Identifier":
+                let id = scope.getVariableId(left.name);
+                if(id === -1){
+                    let stringid = scope.getStringId(left.name);
+                    emitString(scope, stringid);
+                    emitAssignValueToGlobal(scope);
+                }else{
+                    emitAssignValue(scope, id);
+                }
+                break;
+            case "MemberExpression": {
+
+                
+                scope.generate(left.object);
+                let property = left.property;
+                //if its computed, dont run that shit
+                if(property.type === "Identifier" && !left.computed){
+                    let stringid = scope.getStringId(property.name);
+                    emitString(scope, stringid);
+                }else{
+                    scope.generate(left.property);
+                }
+                emitSetObjectProperty(scope);
+                break;
+            }
+            default:
+                throw("Invalid assignment expression type");
+        }
+    }else if(node.operator === "+=" || node.operator === "-=" || node.operator === "%=" || node.operator === "^=" || node.operator === "&=" || node.operator === "|="){
+        switch(left.type){
+            case "Identifier":
+                let id = scope.getVariableId(left.name);
+                if(id === -1){
+                    let stringid = scope.getStringId(left.name);
+                    emitString(scope, stringid);
+                    emitGetGlobalVariableValue(scope);
+                    switch(node.operator){
+                        case "^=":
+                            emitBitXOR(scope);
+                            break;
+                        case "&=":
+                            emitBitAnd(scope);
+                            break;
+                        case "%=":
+                            emitRemainder(scope);
+                            break;
+                        case "-=":
+                            emitSub(scope);
+                            break;
+                        case "|=":
+                            emitBitOr(scope);
+                            break;
+                        case "+=":
+                            emitAdd(scope);
+                            break;
+                        default:
+                            throw("Unknown type");
+                    }
+                    emitString(scope, stringid);
+                    emitAssignValueToGlobal(scope);
+                }else{
+                    emitGetVariableValue(scope, id);
+                    switch(node.operator){
+                        case "^=":
+                            emitBitXOR(scope);
+                            break;
+                        case "&=":
+                            emitBitAnd(scope);
+                            break;
+                        case "%=":
+                            emitRemainder(scope);
+                            break;
+                        case "-=":
+                            emitSub(scope);
+                            break;
+                        case "|=":
+                            emitBitOr(scope);
+                            break;
+                        case "+=":
+                            emitAdd(scope);
+                            break;
+                        default:
+                            throw("Unknown type");
+                    }
+                    emitAssignValue(scope, id);
+                }
+                break;
+            case "MemberExpression": {
+
+                
+                scope.generate(left.object);
+                let property = left.property;
+                //if its computed, dont run that shit
+                if(property.type === "Identifier" && !left.computed){
+                    let stringid = scope.getStringId(property.name);
+                    emitString(scope, stringid);
+                }else{
+                    scope.generate(left.property);
+                }
+                emitSetObjectProperty(scope);
+                break;
+            }
+            default:
+                throw("Invalid assignment expression type");
+        }
+    }else{
+        throw("Unsupported assignment operator");
+    }
+}
+
+export function GenerateVariableDeclarator(node: VariableDeclarator, scope: Scope){
+    if(node.init) scope.generate(node.init);
     switch(node.id.type){
         case "Identifier": {
-            let id = generator.declareVariable(node.id.name);
-            generator.emitAssignValue(id);
+            let id = scope.getVariableId(node.id.name);
+            emitAssignValue(scope, id);
             break;
         }
         default:
@@ -200,22 +604,22 @@ export function GenerateVariableDeclarator(node: VariableDeclarator, generator: 
     }
 }
 
-export function GenerateMemberExpression(node: MemberExpression, generator: Generator){
+export function GenerateMemberExpression(node: MemberExpression, scope: Scope){
     let object = node.object;
     
     switch(object.type){
         case "Identifier":
-            let id = generator.declareVariable(object.name);
+            let id = scope.getVariableId(object.name);
             if(id === -1){
-                let id = generator.stringManager.add(object.name);
-                generator.emitString(id);
-                generator.emitGetGlobalVariableValue();
+                let id = scope.getStringId(object.name);
+                emitString(scope, id);
+                emitGetGlobalVariableValue(scope);
             }else{
-                generator.emitGetVariableValue(id);
+                emitGetVariableValue(scope, id);
             }   
             break;
         default:
-            generator.generate(object);
+            scope.generate(object);
     }
 
     let property = node.property;
@@ -224,153 +628,184 @@ export function GenerateMemberExpression(node: MemberExpression, generator: Gene
         
         case "Identifier": {
             if(!node.computed){
-                let id = generator.stringManager.add(property.name);
-                generator.emitString(id);
+                let id = scope.getStringId(property.name);
+                emitString(scope, id);
                 break;
             }
         }
         default:
-            generator.generate(node.property);
+            scope.generate(node.property);
     }
 
-    generator.emitGetObjectProperty();
+    emitGetObjectProperty(scope);
 }
 
-export function GenerateProperty(node: Property, generator: Generator){
+export function GenerateProperty(node: Property, scope: Scope){
     let key = node.key;
     switch(key.type){
         case "Identifier":
-            let stringid = generator.stringManager.add(key.name);
-            generator.emitString(stringid);
+            let stringid = scope.getStringId(key.name);
+            emitString(scope, stringid);
             break;
         default:
             throw("Unknow property @generateProperty");
     }
-    generator.generate(node.value);
+    scope.generate(node.value);
 }
 
-export function GenerateArrayExpression(node: ArrayExpression, generator: Generator){
-    node.elements.forEach(child => generator.generate(child));
-    generator.emitMakeArray(node.elements.length);
+export function GenerateArrayExpression(node: ArrayExpression, scope: Scope){
+    node.elements.forEach(child => scope.generate(child));
+    emitMakeArray(scope, node.elements.length);
 }
 
-export function GenerateObjectExpression(node: ObjectExpression, generator: Generator){
-    node.properties.forEach(child => generator.generate(child));
-    generator.emitMakeObject(node.properties.length);
+export function GenerateObjectExpression(node: ObjectExpression, scope: Scope){
+    node.properties.forEach(child => scope.generate(child));
+    emitMakeObject(scope, node.properties.length);
 }
 
-export function GenerateForStatement(node: ForStatement, generator: Generator){
-    if(node.init) generator.generate(node.init);
-    let pre_test_label = generator.makeLabel(Uint32Array.BYTES_PER_ELEMENT);
+export function GenerateForStatement(node: ForStatement, scope: Scope){
+    if(node.init) scope.generate(node.init);
+    let pre_test_label = scope.makeLabel(Uint32Array.BYTES_PER_ELEMENT);
     pre_test_label.setTarget();
 
-    if(node.test) generator.generate(node.test);
-    generator.emitJumpIfFalse()
-    let skip_body_label = generator.makeLabel(Uint32Array.BYTES_PER_ELEMENT);
+    if(node.test) scope.generate(node.test);
+    emitJumpIfFalse(scope)
+    let skip_body_label = scope.makeLabel(Uint32Array.BYTES_PER_ELEMENT);
     skip_body_label.setOrigin();
 
-    if(node.body) generator.generate(node.body);
-    if(node.update) generator.generate(node.update);
+    if(node.body) scope.generate(node.body);
+    if(node.update) scope.generate(node.update);
 
-    generator.emitJMP();
+    emitJMP(scope);
     pre_test_label.setOrigin();
     skip_body_label.setTarget();
 }
 
-export function GenerateVariableDeclaration(node: VariableDeclaration, generator: Generator){
-    node.declarations.forEach(child => generator.generate(child));
+export function GenerateVariableDeclaration(node: VariableDeclaration, scope: Scope){
+    node.declarations.forEach(child => scope.generate(child));
 }
 
-export function GenerateUnaryExpression(node: UnaryExpression, generator: Generator){
-    throw("Not implemented");
+export function GenerateUnaryExpression(node: UnaryExpression, scope: Scope){
+    scope.generate(node.argument);
+    switch(node.operator){
+        case "!":
+            emitNotSymbol(scope);
+            break;
+        case "~":
+            emitNegateSymbol(scope);
+            break;
+        default:
+            throw("Unsuported unary expression: " + node.operator);
+    }
 }
 
-export function GenerateUpdateExpression(node: UpdateExpression, generator: Generator){
-    throw("Not implemented");
+export function GenerateUpdateExpression(node: UpdateExpression, scope: Scope){
+    let argument = node.argument;
+    switch(argument.type){
+        case "Identifier": {
+            let varid = scope.getVariableId(argument.name);
+            switch(node.operator){
+                case "++": {
+                    if(varid === -1){
+                        throw("Cant handle global++ yet");
+                    }else{
+                        emitPlusPlus(scope, varid);
+                    }
+                    break;
+                }
+                default:
+                    throw("Unknown update statement");
+            }
+
+            break;
+        }
+        default:
+            throw("Unknown update statement type");
+    }
 }
 
-export function GenerateBinaryExpression(node: BinaryExpression, generator: Generator){
-    generator.generate(node.left);
-    generator.generate(node.right);
+export function GenerateBinaryExpression(node: BinaryExpression, scope: Scope){
+    scope.generate(node.left);
+    scope.generate(node.right);
     switch(node.operator){
         case "<": {
-            generator.emitLessThan();
+            emitLessThan(scope);
             break;
         }
         case "<=": {
-            generator.emitLessThanOrEqual();
+            emitLessThanOrEqual(scope);
             break;
         }
         case ">": {
-            generator.emitGreaterThan();
+            emitGreaterThan(scope);
             break;
         }
         case ">=": {
-            generator.emitGreaterThanOrEqual();
+            emitGreaterThanOrEqual(scope);
             break;
         }
         case "==": {
-            generator.emitEqualTo();
+            emitEqualTo(scope);
             break;
         }
         case "===": {
-            generator.emitEqualToStrict();
+            emitEqualToStrict(scope);
             break;
         }
         case "!=": {
-            generator.emitNotEqualTo();
+            emitNotEqualTo(scope);
             break;
         }
         case "!==": {
-            generator.emitNotEqualTo();
+            emitNotEqualTo(scope);
             break;
         }
         case "**": {
-            generator.emitRaiseExponent();
+            emitRaiseExponent(scope);
             break;
         }
         case ">>": {
-            generator.emitBitRightShift();
+            emitBitRightShift(scope);
             break;
         }
         case ">>>": {
-            generator.emitBitZeroFillRightShift();
+            emitBitZeroFillRightShift(scope);
             break;
         }
         case "<<": {
-            generator.emitBitLeftShift();
+            emitBitLeftShift(scope);
             break;
         }
         case "&": {
-            generator.emitBitAnd();
+            emitBitAnd(scope);
             break;
         }
         case "|": {
-            generator.emitBitOr();
+            emitBitOr(scope);
             break;
         }
         case "^": {
-            generator.emitBitXOR();
+            emitBitXOR(scope);
             break;
         }
         case "*": {
-            generator.emitMultiply();
+            emitMultiply(scope);
             break;
         }
         case "/": {
-            generator.emitDivide();
+            emitDivide(scope);
             break;
         }
         case "-": {
-            generator.emitSub();
+            emitSub(scope);
             break;
         }
         case "+": {
-            generator.emitAdd();
+            emitAdd(scope);
             break;
         }
         case "%": {
-            generator.emitRemainder();
+            emitRemainder(scope);
             break;
         }
         default:
@@ -378,40 +813,40 @@ export function GenerateBinaryExpression(node: BinaryExpression, generator: Gene
     }
 }
 
-export function GenerateBlockStatement(node: BlockStatement, generator: Generator){
-   // if(generator.node === node){
-        node.body.forEach(child => generator.generate(child));
-        //generator.emitEND();
+export function GenerateBlockStatement(node: BlockStatement, scope: Scope){
+   // if(scope.node === node){
+        node.body.forEach(child => scope.generate(child));
+        //scope.emitEND();
     //}else{
-      //  let child = generator.child(node);
-       // generator.emitJumpToBlock(child.id);
+      //  let child = scope.child(node);
+       // scope.emitJumpToBlock(child.id);
         //child.generate(child.node);
     //}
 }
 
-export function GenerateIfStatement(node: IfStatement, generator: Generator){
-    generator.generate(node.test);
+export function GenerateIfStatement(node: IfStatement, scope: Scope){
+    scope.generate(node.test);
 
-    generator.emitJumpIfFalse();
-    const test_label = generator.makeLabel(Uint32Array.BYTES_PER_ELEMENT);
+    emitJumpIfFalse(scope);
+    const test_label = scope.makeLabel(Uint32Array.BYTES_PER_ELEMENT);
     test_label.setOrigin();
     
-    generator.generate(node.consequent);
+    scope.generate(node.consequent);
 
-    generator.emitJMP();
-    let consequent_label = generator.makeLabel(Uint32Array.BYTES_PER_ELEMENT);
+    emitJMP(scope);
+    let consequent_label = scope.makeLabel(Uint32Array.BYTES_PER_ELEMENT);
     consequent_label.setOrigin();
     
     test_label.setTarget();
-    if(node.alternate) generator.generate(node.alternate);
+    if(node.alternate) scope.generate(node.alternate);
     consequent_label.setTarget();
 }
 
-export function GenerateExpressionStatement(node: ExpressionStatement, generator: Generator){
-    generator.generate(node.expression);
+export function GenerateExpressionStatement(node: ExpressionStatement, scope: Scope){
+    scope.generate(node.expression);
 }
 
-export function GenerateProgram(node: Program, generator: Generator){
-    node.body.forEach(child => generator.generate(child));
-    generator.emitEND();
+export function GenerateProgram(node: Program, scope: Scope){
+    node.body.forEach(child => scope.generate(child));
+    emitEND(scope);
 }
