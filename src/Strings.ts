@@ -12,8 +12,11 @@ export class Strings {
     }
 
     add(string: string){
+        //wtf javascript
+        if(string === "__proto__") string = "____proto____";
         console.log(string, "added");
-        if(!this.set.hasOwnProperty(string)){
+        
+        if(!Object.hasOwnProperty.apply(this.set, [string])){
             let id = this.id++;
             this.set[string] = id;
             this.strings[id] = string;
@@ -21,8 +24,9 @@ export class Strings {
     }
 
     get(string: string): number{
-        console.log(string);
-        if(!this.set.hasOwnProperty(string)) throw("Couldnt find the string");
+        //wtf javascript
+        if(string === "__proto__") string = "____proto____";
+        if(!Object.hasOwnProperty.apply(this.set, [string])) throw("Couldnt find the string: " + string);
         return this.set[string];
     }
 

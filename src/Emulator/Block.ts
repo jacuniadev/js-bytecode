@@ -174,6 +174,12 @@ a[Op.NegateSymbol] = function(block){
     //block.log("~")
 }
 
+a[Op.TypeOf] = function(block){
+    let val = block.stack.pop();
+    block.stack.push(typeof(val));
+    //block.log("typeof")
+}
+
 a[Op.GetVariableValue] = function(block){
     let index = block.readI32();
     let value = block.definitions[index].value;
@@ -310,6 +316,44 @@ a[Op.Remainder] = function(block){
     block.stack.push(left % right);
     
 }
+a[Op.InstanceOf] = function(block){
+    let right = block.stack.pop();
+    let left = block.stack.pop();
+    block.stack.push(left instanceof right);
+    
+}
+a[Op.MinusOutFront] = function(block){
+    let val = block.stack.pop();
+    block.stack.push(-val);
+    
+}
+a[Op.PlusOutFront] = function(block){
+    let val = block.stack.pop();
+    block.stack.push(+val);
+    
+}
+a[Op.Void] = function(block){
+    let val = block.stack.pop();
+    block.stack.push(void val);
+}
+a[Op.Delete] = function(block){
+    let prop = block.stack.pop();
+    let obj = block.stack.pop();
+    block.stack.push(delete obj[prop]);
+}
+a[Op.In] = function(block){
+    let right = block.stack.pop();
+    let left = block.stack.pop();
+    block.stack.push(left in right);
+    
+}
+a[Op.Throw] = function(block){
+    let arg = block.stack.pop();
+    throw(arg);
+}
+a[Op.Null] = function(block){
+    block.stack.push(null);
+}
 a[Op.BitAnd] = function(block){
     let right = block.stack.pop();
     let left = block.stack.pop();
@@ -356,6 +400,10 @@ a[Op.RaiseExponent] = function(block){
     let right = block.stack.pop();
     let left = block.stack.pop();
     block.stack.push(left ** right);
+}
+
+a[Op.GetArgs] = function(block: Block){
+    block.stack.push(block.args);
 }
 
 a[Op.JumpToStart] = function(block){
@@ -471,7 +519,7 @@ class Block{
         return new Block(blockId, this);
     }
 
-    /*log(...args){
+   /* log(...args){
         let space = new Array(this.blockId * 4).join(" ");
         console.log(space, ...args);
     }*/
@@ -552,7 +600,7 @@ class Block{
             for (; this.U < 1;) {
                 //let op = this.ip;
                 let header = bytes[this.ip++];
-               // this.log("[" + op + "] " + Op[header], header);
+                //this.log("[" + op + "] " + Op[header], header);
                 a[header](this);
                 /*switch(header){
                     case Op.CreateFunction: {

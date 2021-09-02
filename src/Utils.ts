@@ -10,6 +10,10 @@ export function i8Bytes(n: number): number{
     return n;
 }
 
+export function HOP(obj, val){
+    return Object.hasOwnProperty.apply(obj, [val]);
+}
+
 export function i32Bytes(n: number): Uint8Array{
     if(!isValidI32(n)) throw new Error("Invlaid i32 provided: " + n);
     return new Uint8Array([

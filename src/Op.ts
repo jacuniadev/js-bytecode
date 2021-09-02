@@ -8,6 +8,7 @@ export enum Op{
     JumpIfFalse,
     JumpToBlock,
     JumpToStart,
+    GetArguments,
 
     //binary expressions
     LessThan,
@@ -46,7 +47,7 @@ export enum Op{
     MakeArray,
     MakeObject,
     This,
-    GetArguments,
+    GetArgs,
     Debugger,
 
     PlusPlus,
@@ -60,8 +61,16 @@ export enum Op{
     Or,
     And,
     NotSymbol,
+    TypeOf,
     NegateSymbol,
-
+    InstanceOf,
+    Throw,
+    Null,
+    In,
+    Delete,
+    MinusOutFront,
+    PlusOutFront,
+    Void,
 };
 
 /*export const Op: {[key: string]: number} = {

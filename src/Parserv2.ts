@@ -2,7 +2,7 @@
 import {parse} from "acorn";
 import { traverse } from "estraverse";
 import { Literal, Node } from "estree";
-import { GenerateArrayExpression, GenerateAssignmentExpression, GenerateBinaryExpression, GenerateBlockStatement, GenerateBreakStatement, GenerateCallExpression, GenerateDebuggerStatement, GenerateExpressionStatement, GenerateForStatement, GenerateFunctionDeclaration, GenerateFunctionExpression, GenerateIdentifier, GenerateIfStatement, GenerateLiteral, GenerateLogicalExpression, GenerateMemberExpression, GenerateNewExpression, GenerateObjectExpression, GenerateProgram, GenerateProperty, GenerateReturnStatement, GenerateSwitchStatement, GenerateThisExpression, GenerateUnaryExpression, GenerateUpdateExpression, GenerateVariableDeclaration, GenerateVariableDeclarator, GenerateWhileStatement } from "./ASTCodegen";
+import { GenerateArrayExpression, GenerateAssignmentExpression, GenerateBinaryExpression, GenerateBlockStatement, GenerateBreakStatement, GenerateCallExpression, GenerateConditionalExpression, GenerateDebuggerStatement, GenerateExpressionStatement, GenerateForStatement, GenerateFunctionDeclaration, GenerateFunctionExpression, GenerateIdentifier, GenerateIfStatement, GenerateLiteral, GenerateLogicalExpression, GenerateMemberExpression, GenerateNewExpression, GenerateObjectExpression, GenerateProgram, GenerateProperty, GenerateReturnStatement, GenerateSequenceExpression, GenerateSwitchStatement, GenerateThisExpression, GenerateThrowStatement, GenerateTryStatement, GenerateUnaryExpression, GenerateUpdateExpression, GenerateVariableDeclaration, GenerateVariableDeclarator, GenerateWhileStatement } from "./ASTCodegen";
 import { Label } from "./Label";
 import { Strings } from "./Strings";
 
@@ -162,6 +162,12 @@ export class Scope{
             case "BlockStatement":
                 GenerateBlockStatement(node, this);
                 break;
+            case "ConditionalExpression":
+                GenerateConditionalExpression(node, this);
+                break;
+            case "TryStatement":
+                GenerateTryStatement(node, this);
+                break;
             case "BinaryExpression":
                 GenerateBinaryExpression(node, this);
                 break;
@@ -218,6 +224,12 @@ export class Scope{
                 break;
             case "MemberExpression":
                 GenerateMemberExpression(node, this);
+                break;
+            case "SequenceExpression":
+                GenerateSequenceExpression(node, this);
+                break;
+            case "ThrowStatement":
+                GenerateThrowStatement(node, this);
                 break;
             case "NewExpression":
                 GenerateNewExpression(node, this);

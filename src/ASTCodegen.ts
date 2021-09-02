@@ -1,4 +1,4 @@
-import { BlockStatement, BreakStatement, SwitchStatement, LogicalExpression, NewExpression, DebuggerStatement, ArrayExpression, ThisExpression, FunctionExpression, Property, MemberExpression, ForStatement, ObjectExpression, UnaryExpression, UpdateExpression, ReturnStatement, CallExpression, FunctionDeclaration, Identifier, AssignmentExpression, VariableDeclaration, WhileStatement, BinaryExpression, Literal, Node, VariableDeclarator, IfStatement, Program, ExpressionStatement } from "estree";
+import { BlockStatement, ThrowStatement, SequenceExpression, ConditionalExpression, TryStatement, BreakStatement, SwitchStatement, LogicalExpression, NewExpression, DebuggerStatement, ArrayExpression, ThisExpression, FunctionExpression, Property, MemberExpression, ForStatement, ObjectExpression, UnaryExpression, UpdateExpression, ReturnStatement, CallExpression, FunctionDeclaration, Identifier, AssignmentExpression, VariableDeclaration, WhileStatement, BinaryExpression, Literal, Node, VariableDeclarator, IfStatement, Program, ExpressionStatement } from "estree";
 import { Op } from "./Op";
 import { Scope } from "./Parserv2";
 import { f64Bytes, i32Bytes, i8Bytes, isValidI32, isValidI8 } from "./Utils";
@@ -37,8 +37,41 @@ export function emitThis(scope: Scope){
     __writeI8(scope, Op.This);
 }
 
+
+export function emitInstanceOf(scope: Scope){
+    __writeI8(scope, Op.InstanceOf);
+}
+
+export function emitMinusOutFront(scope: Scope){
+    __writeI8(scope, Op.MinusOutFront);
+}
+
+export function emitPlusOutFront(scope: Scope){
+    __writeI8(scope, Op.PlusOutFront);
+}
+
+export function emitVoid(scope: Scope){
+    __writeI8(scope, Op.Void);
+}
+
+export function emitIn(scope: Scope){
+    __writeI8(scope, Op.In);
+}
+
+export function emitThrow(scope: Scope){
+    __writeI8(scope, Op.Throw);
+}
+
+export function emitArguments(scope: Scope){
+    __writeI8(scope, Op.GetArgs);
+}
+
 export function emitDebugger(scope: Scope){
     __writeI8(scope, Op.Debugger);
+}
+
+export function emitdelete(scope: Scope){
+    __writeI8(scope, Op.Delete);
 }
 
 export function emitSetObjectProperty(scope: Scope){
@@ -129,6 +162,10 @@ export function emitDivide(scope: Scope){
 
 export function emitNotSymbol(scope: Scope){
     __writeI8(scope, Op.NotSymbol);
+}
+
+export function emitTypeOf(scope: Scope){
+    __writeI8(scope, Op.TypeOf);
 }
 
 export function emitNegateSymbol(scope: Scope){
@@ -238,6 +275,10 @@ export function emitBOOL(scope: Scope, bool: boolean){
     __writeI8(scope, +bool);
 }
 
+export function emitNull(scope: Scope){
+    __writeI8(scope, Op.Null);
+}
+
 export function emitMakeObject(scope: Scope, props: number){
     __writeI8(scope, Op.MakeObject);
     __writeI32(scope, props);
@@ -267,7 +308,8 @@ export function GenerateLiteral(node: Literal, scope: Scope){
     }
     else if(typeof(node.value) === "number") loadNumber(scope, node.value);
     else if(typeof(node.value) === "boolean") emitBOOL(scope, node.value);
-    else throw("Unsupported literal type");
+    else if(node.value === null) emitNull(scope);
+    else throw("Unsupported literal type" + node.value);
 }
 
 export function GenerateWhileStatement(node: WhileStatement, scope: Scope){
@@ -301,6 +343,10 @@ export function GenerateReturnStatement(node: ReturnStatement, scope: Scope){
     emitReturn(scope);
 }
 
+export function GenerateSequenceExpression(node: SequenceExpression, scope: Scope){
+    node.expressions.forEach(child => scope.generate(child));
+}
+
 export function GenerateCallExpression(node: CallExpression, scope: Scope){
     let callee = node.callee;
     node.arguments.forEach(child => scope.generate(child));
@@ -329,10 +375,34 @@ export function GenerateCallExpression(node: CallExpression, scope: Scope){
             emitObjectPropertyCall(scope, node.arguments.length);
             break;
         }
+        case "FunctionExpression": {
+            scope.generate(callee);
+            emitCall(scope, node.arguments.length);
+            break;
+        }
         default:
-            throw("Unsupported callee type");
+            throw("Unsupported callee type" + callee.type);
     }
 }
+
+export function GenerateConditionalExpression(node: ConditionalExpression, scope: Scope){
+    scope.generate(node.test);
+
+    emitJumpIfFalse(scope);
+    const test_label = scope.makeLabel(Uint32Array.BYTES_PER_ELEMENT);
+    test_label.setOrigin();
+    
+    scope.generate(node.consequent);
+
+    emitJMP(scope);
+    let consequent_label = scope.makeLabel(Uint32Array.BYTES_PER_ELEMENT);
+    consequent_label.setOrigin();
+    
+    test_label.setTarget();
+    scope.generate(node.alternate);
+    consequent_label.setTarget();
+}
+
 export function GenerateFunctionExpression(node: FunctionExpression, scope: Scope){
     
     if(scope.node === node){
@@ -403,6 +473,11 @@ export function GenerateNewExpression(node: NewExpression, scope: Scope){
 }
 
 export function GenerateIdentifier(node: Identifier, scope: Scope){
+
+    if(node.name === "arguments"){
+        return;
+    }
+
     let id = scope.getVariableId(node.name);
 
     if(id === -1){ //its a global property...
@@ -433,47 +508,57 @@ export function GenerateLogicalExpression(node: LogicalExpression, scope: Scope)
     }
 }
 
+const break_labels = [];
+//lets pray that its inside the switch
 export function GenerateBreakStatement(node: BreakStatement, scope: Scope){
-    emitEND(scope);
+    let break_label = scope.makeLabel(Uint32Array.BYTES_PER_ELEMENT);
+    emitJMP(scope);
+    break_label.setOrigin();
+    break_labels.push(break_label);
+}
+
+export function GenerateTryStatement(node: TryStatement, scope: Scope){
+    //throTryStatement
+    scope.generate(node.block);
 }
 
 export function GenerateSwitchStatement(node: SwitchStatement, scope: Scope){
     //return
-    if(node === scope.node){
-        let labels = [];
-        let cases = node.cases;
-        for(let i = 0; i < cases.length; i++){
-            var _case = cases[i];
-            if(_case.test){
-                scope.generate(node.discriminant);
-                scope.generate(_case.test)
-                emitNotEqualToStrict(scope);
-                emitJumpIfFalse(scope);
-                let label = scope.makeLabel(Uint32Array.BYTES_PER_ELEMENT);
-                label.setOrigin();
-                labels.push(label);
-            }else{
-                emitJMP(scope);
-                let defaultCaseJump = scope.makeLabel(Uint32Array.BYTES_PER_ELEMENT);
-                defaultCaseJump.setOrigin();
-                labels.push(defaultCaseJump);
-            }
-        }
     
-        emitEND(scope);
-
-        for(let i = 0; i < cases.length; i++){
-            
-            labels[i].setTarget();
-            var _case = cases[i];
-            _case.consequent.forEach(child => scope.generate(child));
+    let labels = [];
+    let cases = node.cases;
+    for(let i = 0; i < cases.length; i++){
+        var _case = cases[i];
+        if(_case.test){
+            scope.generate(node.discriminant);
+            scope.generate(_case.test)
+            emitNotEqualToStrict(scope);
+            emitJumpIfFalse(scope);
+            let label = scope.makeLabel(Uint32Array.BYTES_PER_ELEMENT);
+            label.setOrigin();
+            labels.push(label);
+        }else{
+            emitJMP(scope);
+            let defaultCaseJump = scope.makeLabel(Uint32Array.BYTES_PER_ELEMENT);
+            defaultCaseJump.setOrigin();
+            labels.push(defaultCaseJump);
         }
-    }else{
-        let child = scope.makeChild(node);
-        emitJumpToBlock(scope, child.id);
-        child.generate(child.node);
-        emitEND(child);    
     }
+
+    let jump_missed_cases = scope.makeLabel(Uint32Array.BYTES_PER_ELEMENT);
+    emitJMP(scope);
+    jump_missed_cases.setOrigin();
+
+    for(let i = 0; i < cases.length; i++){
+        
+        labels[i].setTarget();
+        var _case = cases[i];
+        _case.consequent.forEach(child => scope.generate(child));
+    }
+
+    break_labels.forEach(label => label.setTarget());
+    break_labels.length = 0;    
+    jump_missed_cases.setTarget();
 }
 
 export function GenerateAssignmentExpression(node: AssignmentExpression, scope: Scope){
@@ -686,6 +771,17 @@ export function GenerateVariableDeclaration(node: VariableDeclaration, scope: Sc
 }
 
 export function GenerateUnaryExpression(node: UnaryExpression, scope: Scope){
+    if(node.operator === "delete"){
+        let memExp = node.argument;
+        if(memExp.type === "MemberExpression"){
+            scope.generate(memExp.object);
+            scope.generate(memExp.property);
+            emitdelete(scope);
+        }else{
+            throw("cant delete on not a member expression");
+        }
+        return;
+    }
     scope.generate(node.argument);
     switch(node.operator){
         case "!":
@@ -693,6 +789,18 @@ export function GenerateUnaryExpression(node: UnaryExpression, scope: Scope){
             break;
         case "~":
             emitNegateSymbol(scope);
+            break;
+        case "typeof":
+            emitTypeOf(scope);
+            break;
+        case "-":
+            emitMinusOutFront(scope);
+            break;
+        case "+":
+            emitPlusOutFront(scope);
+            break;
+        case "void":
+            emitVoid(scope);
             break;
         default:
             throw("Unsuported unary expression: " + node.operator);
@@ -713,8 +821,16 @@ export function GenerateUpdateExpression(node: UpdateExpression, scope: Scope){
                     }
                     break;
                 }
+                case "--": {
+                    if(varid === -1){
+                        throw("Cant handle global++ yet");
+                    }else{
+                        emitMinusMinus(scope, varid);
+                    }
+                    break;
+                }
                 default:
-                    throw("Unknown update statement");
+                    throw("Unknown update statement: " + node.operator);
             }
 
             break;
@@ -808,9 +924,22 @@ export function GenerateBinaryExpression(node: BinaryExpression, scope: Scope){
             emitRemainder(scope);
             break;
         }
+        case "instanceof": {
+            emitInstanceOf(scope);
+            break;
+        }
+        case "in": {
+            emitIn(scope);
+            break;
+        }
         default:
             throw("Unknown binary operation: " + node.operator);
     }
+}
+
+export function GenerateThrowStatement(node: ThrowStatement, scope: Scope){
+    scope.generate(node.argument);
+    emitThrow(scope);
 }
 
 export function GenerateBlockStatement(node: BlockStatement, scope: Scope){
