@@ -292,10 +292,10 @@ export class Scope{
             })
 
             let bytes = new Uint8Array(scope._buffer, 0, scope.offset).slice();
-            buffer.push(...bytes);
+            buffer.push(...<any>bytes);
         })
 
-        buffer.push(...rawStringdata);
+        buffer.push(...<any>rawStringdata);
         let raw = new Uint8Array(buffer);
 
         return {
@@ -311,7 +311,7 @@ export function forEveryParser(topScope: Scope, callback: Function){
 }
 
 export function compileByteCode(code: string){
-    let ast = parse(code, {ecmaVersion: 2015});
+    let ast = parse(code, {ecmaVersion: 5});
     let topScope = new Scope(<Node>ast);
     
     let {raw, scopes} = topScope.build();

@@ -12,6 +12,7 @@ export class Strings {
     }
 
     add(string: string){
+        if(string.length > 0xff) throw("Cant support strings over 255 length yet");
         //wtf javascript
         if(string === "__proto__") string = "____proto____";
         console.log(string, "added");

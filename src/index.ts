@@ -6,60 +6,18 @@ import { traverse } from "estraverse";
 import {generate} from "escodegen";
 import { minify } from "terser";
 
-let code = `
-'use strict';
+let inputPath = path.join(__dirname, "../input/in.js");
+let code = fs.readFileSync(inputPath, {encoding: "utf8"});
 
-function _await(value, then, direct) {
-  if (direct) {
-    return then ? then(value) : value;
-  }if (!value || !value.then) {
-    value = Promise.resolve(value);
-  }return then ? value.then(then) : value;
-}
-
-
-var myFetch = _async(function () {
-    return _await(fetch('https://sploop.io/img/entity/wall.png'), function (response) {
-      if (!response.ok) {
-        throw new Error('HTTP error! status: ' + response.status);
-      }
-      return _await(response.blob());
-    });
-  });
-  
-
-function _async(f) {
-    return function () {
-      for (var args = [], i = 0; i < arguments.length; i++) {
-        args[i] = arguments[i];
-      }try {
-        return Promise.resolve(f.apply(this, args));
-      } catch (e) {
-        return Promise.reject(e);
-      }
-    };
-  }
-
-
-myFetch().then(function (blob) {
-  var objectURL = URL.createObjectURL(blob);
-  var image = document.createElement('img');
-  image.src = objectURL;
-  document.body.appendChild(image);
-}).catch(function (e) {
-  return console.log(e);
-});
-
-`
 let {raw, base64, scopes} = compileByteCode(code);
 
 scopes.forEach(scope => {
     console.log(scope);
 });
 
-let templatePath = path.join(__dirname, "../dist/");
-let templateOutput = path.join(__dirname, "../output/");
-let template = fs.readFileSync(path.join(templatePath, "/index.js"), {encoding: "utf-8"});
+let templatePath = path.join(__dirname, "./EmulatorTemplate/");
+let templateOutput = path.join(__dirname, "../out/");
+let template = fs.readFileSync(path.join(templatePath, "/EmulatorTemplate.js"), {encoding: "utf-8"});
 let ast = parse(template, {ecmaVersion: "latest"});
 
 function makeLiteral(val){
@@ -99,6 +57,6 @@ async function writeMin(){
     fs.writeFileSync(path.join(templateOutput, "out.min.js"), result.code);
 }
 
-//Function(output)();
+Function(output)();
 
 writeMin();

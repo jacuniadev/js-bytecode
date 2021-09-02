@@ -1,5 +1,5 @@
 // @ts-nocheck
-import {Op} from "../Op";
+import {Op, OpcodeString} from "./Op";
 
 let globalScope = "object" == typeof globalThis ? globalThis : "object" == typeof window ? window : self;
 
@@ -410,7 +410,6 @@ a[Op.JumpToStart] = function(block){
     block.ip = 0;
 }
 
-
 let strings = [];
 var bytes = decode(__program);
 let __F64__ = new Float64Array(1);
@@ -598,10 +597,8 @@ class Block{
     run(){
         try{
             for (; this.U < 1;) {
-                let op = this.ip;
-                let header = bytes[this.ip++];
-                this.log("[" + op + "] " + Op[header], header);
-                a[header](this);
+                this.log("[" + this.ip + "] " + OpcodeString[bytes[this.ip]], bytes[this.ip]);
+                a[bytes[this.ip++]](this);
             }
             return this.returnRegister;
         }catch(err){

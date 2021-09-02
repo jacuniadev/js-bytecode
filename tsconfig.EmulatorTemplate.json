@@ -8,10 +8,10 @@
       "sourceMap": true,
       "strict": true,
       "target": "es6",
-      "outDir": "./dist"
+      "outDir": "./dist/EmulatorTemplate/"
     },
     "include": [
-      "src/Emulator/*"
+      "src/Emulator.ts"
     ],
     "exclude": [
       "dist",
