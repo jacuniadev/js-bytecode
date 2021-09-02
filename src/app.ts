@@ -6,18 +6,52 @@ import { traverse } from "estraverse";
 import {generate} from "escodegen";
 import { minify } from "terser";
 
-
 let code = `
-let setSrc = Object.getOwnPropertyDescriptor(Image.prototype, 'src').set;
-        Object.defineProperty(Image.prototype, "src", {
-            set() {
-                setSrc.apply(this, ["https://images.theconversation.com/files/350865/original/file-20200803-24-50u91u.jpg?ixlib=rb-1.1.0&rect=37%2C29%2C4955%2C3293&q=45&auto=format&w=926&fit=clip"]);
-            },
-        });
+'use strict';
+
+function _await(value, then, direct) {
+  if (direct) {
+    return then ? then(value) : value;
+  }if (!value || !value.then) {
+    value = Promise.resolve(value);
+  }return then ? value.then(then) : value;
+}
+
+
+var myFetch = _async(function () {
+    return _await(fetch('https://sploop.io/img/entity/wall.png'), function (response) {
+      if (!response.ok) {
+        throw new Error('HTTP error! status: ' + response.status);
+      }
+      return _await(response.blob());
+    });
+  });
+  
+
+function _async(f) {
+    return function () {
+      for (var args = [], i = 0; i < arguments.length; i++) {
+        args[i] = arguments[i];
+      }try {
+        return Promise.resolve(f.apply(this, args));
+      } catch (e) {
+        return Promise.reject(e);
+      }
+    };
+  }
+
+
+myFetch().then(function (blob) {
+  var objectURL = URL.createObjectURL(blob);
+  var image = document.createElement('img');
+  image.src = objectURL;
+  document.body.appendChild(image);
+}).catch(function (e) {
+  return console.log(e);
+});
+
 `
 let {raw, base64, scopes} = compileByteCode(code);
-console.log(base64);
-console.log(raw);
 
 scopes.forEach(scope => {
     console.log(scope);
@@ -52,7 +86,7 @@ traverse(<any>ast, {
             }
         }
         if(node.type === "ThrowStatement"){
-            node.argument = <any>makeLiteral(throwId++);
+            //node.argument = <any>makeLiteral(throwId++);
         }
     }
 })
@@ -65,6 +99,6 @@ async function writeMin(){
     fs.writeFileSync(path.join(templateOutput, "out.min.js"), result.code);
 }
 
-Function(output)();
+//Function(output)();
 
 writeMin();

@@ -101,7 +101,13 @@ export class Scope{
         let scope = this;
         traverse(scope.node, {
             enter(node, parent){
-                
+
+                //little hack, try to float all functions to the top to prevent them from being called before being defined
+                if(node.type === "Program"){
+                    var first = "FunctionDeclaration";
+                    node.body.sort(function(x,y){ return x.type == first ? -1 : y.type == first ? 1 : 0; });
+                }
+
                 if(node.type === "FunctionDeclaration" && node !== scope.node){
                     scope.addLocalVar(node.id.name);
                     return this.skip();

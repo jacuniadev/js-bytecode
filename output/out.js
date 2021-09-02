@@ -87,7 +87,7 @@
     };
     function testIsGlobalPropOrFunction(n) {
         n in globalScope || function (n) {
-            throw 0;
+            throw new ReferenceError(n + ' is not defined');
         }(n);
     }
     let __scopes =     [
@@ -96,27 +96,129 @@
             -1,
             0,
             [],
-            111
+            571
         ],
         [
             1,
             0,
-            1,
+            8,
             [],
             0
         ],
         [
             2,
             1,
+            5,
+            [
+                [
+                    3,
+                    0
+                ],
+                [
+                    4,
+                    7
+                ]
+            ],
+            74
+        ],
+        [
+            3,
+            2,
+            4,
+            [
+                [
+                    1,
+                    2
+                ],
+                [
+                    0,
+                    1
+                ],
+                [
+                    2,
+                    0
+                ],
+                [
+                    3,
+                    4
+                ]
+            ],
+            88
+        ],
+        [
+            4,
+            1,
+            4,
+            [[
+                    3,
+                    1
+                ]],
+            184
+        ],
+        [
+            5,
+            1,
+            2,
+            [
+                [
+                    1,
+                    1
+                ],
+                [
+                    0,
+                    3
+                ]
+            ],
+            344
+        ],
+        [
+            6,
+            5,
+            2,
+            [
+                [
+                    0,
+                    0
+                ],
+                [
+                    1,
+                    1
+                ]
+            ],
+            371
+        ],
+        [
+            7,
+            1,
             1,
             [[
                     0,
-                    0
+                    7
                 ]],
-            87
+            450
+        ],
+        [
+            8,
+            1,
+            3,
+            [
+                [
+                    0,
+                    4
+                ],
+                [
+                    2,
+                    6
+                ],
+                [
+                    1,
+                    5
+                ]
+            ],
+            477
         ]
     ];;
-    let __program = 'BQgAAAAjBQEAAAAhBQIAAAAFAAAAAAUHAAAAIyYCBQMAAAAhHgAAAAAFCAAAACMFAQAAACEFAgAAAAUDAAAAJAIAAAAqAQAAAAUEAAAABQcAAAAjJgMBKwUGAAAAKQEAAAAFBQAAACAAAAAAJgIBKBhnZXRPd25Qcm9wZXJ0eURlc2NyaXB0b3IoCXByb3RvdHlwZSgDc3JjKANzZXQoDmRlZmluZVByb3BlcnR5KAVhcHBseSieaHR0cHM6Ly9pbWFnZXMudGhlY29udmVyc2F0aW9uLmNvbS9maWxlcy8zNTA4NjUvb3JpZ2luYWwvZmlsZS0yMDIwMDgwMy0yNC01MHU5MXUuanBnP2l4bGliPXJiLTEuMS4wJnJlY3Q9MzclMkMyOSUyQzQ5NTUlMkMzMjkzJnE9NDUmYXV0bz1mb3JtYXQmdz05MjYmZml0PWNsaXAoBk9iamVjdCgFSW1hZ2UoBnNldFNyYwcBAAAAAQ==';
+    let __program = 'JAIAAAAeAAAAACQEAAAAHgEAAAAFAAAAACQFAAAAIAAAAAAlAR4CAAAAJAcAAAAFDQAAACQIAAAABQYAAAAgAgAAACUAJgEmAQEJAB4AAAAAJAMAAAAnASkAAAAAHgAAAAACAB4BAAAAIAEAAAAsBRsAAAAhCgaXAAAALCABAAAAISAAAAAAIAEAAAAiLgEAAAAAaQAAACsgAAAAAAUdAAAAIAIAAAAmAgUcAAAABSIAAAAjJgEnAQkAHgAAAAAJAR4BAAAACQIeAgAAACACAAAABv0AAAAgAQAAAAbyAAAAIAAAAAAgAQAAACUBAPcAAAAgAAAAACcA/QAAACAAAAAANiAAAAAABQYAAAAhNjQGMQEAACAAAAAABRwAAAAFIgAAACMmAR4AAAAAADEBAAAgAQAAAAZRAQAAIAEAAAAFBgAAACAAAAAAJgEAVgEAACAAAAAAJwEFAQAAAAURAAAAIyUBJAYAAAAgAQAAACUCJwEJAB4AAAAAIAAAAAAFAgAAACE2Bq0BAAAFEwAAACMFAwAAACAAAAAABQQAAAAhEjMBAAAAOgCtAQAABQUAAAAgAAAAACYAIAEAAAAlAScBCQAeAAAAACAAAAAABQ4AAAAFGQAAACMmAScBCQAeAAAAACAAAAAABQcAAAAFFQAAACMmAR4BAAAABQkAAAAFCAAAAAUWAAAAIyYBHgIAAAAgAQAAACACAAAABQoAAAAiIAIAAAAFDAAAAAUWAAAAIwULAAAAISYBASgKdXNlIHN0cmljdCglaHR0cHM6Ly9zcGxvb3AuaW8vaW1nL2VudGl0eS93YWxsLnBuZygCb2soFEhUVFAgZXJyb3IhIHN0YXR1czogKAZzdGF0dXMoBGJsb2IoBHRoZW4oD2NyZWF0ZU9iamVjdFVSTCgNY3JlYXRlRWxlbWVudCgDaW1nKANzcmMoBGJvZHkoC2FwcGVuZENoaWxkKAVjYXRjaCgDbG9nKAZfYXN5bmMoBl9hd2FpdCgFZmV0Y2goCHJlc3BvbnNlKAVFcnJvcigHbXlGZXRjaCgDVVJMKAhkb2N1bWVudCgFaW1hZ2UoCW9iamVjdFVSTCgHY29uc29sZSgBZSgGbGVuZ3RoKAdyZXNvbHZlKAVhcHBseSgGcmVqZWN0KAFpKAlhcmd1bWVudHMoBGFyZ3MoB1Byb21pc2UoAWYoBmRpcmVjdCgFdmFsdWUHAQAAAAE=';
     let a = [];
     a[Op.CreateFunction] = function (block) {
         let blockid = block.readI32();
@@ -129,10 +231,12 @@
         for (let i = 0; i < totalArgs; i++)
             args[totalArgs - i - 1] = block.stack.pop();
         let val = fn.apply(block.scope, args);
+        block.log('Function returned: ' + val);
         block.stack.push(val);
     };
     a[Op.ReturnValue] = function (block) {
         let value = block.stack.pop();
+        block.log('Returning: ' + value);
         block.returnRegister = value;
         block.U++;
     };
@@ -143,14 +247,17 @@
         let prop = block.stack.pop();
         let val = block.stack.pop();
         block.stack.push(block.scope[prop] = val);
+        block.log(`MOV ${ typeof val === 'string' || typeof val === 'number' ? val : typeof val } -> global.${ prop }`);
     };
     a[Op.GetGlobalVariableValue] = function (block) {
         let prop = block.stack.pop();
+        block.log('property', prop);
         testIsGlobalPropOrFunction(prop);
         block.stack.push(globalScope[prop]);
     };
     a[Op.GetArguments] = function (block) {
         let index = block.readI8();
+        block.log('Loading value into arguments', block.args[index]);
         block.stack.push(block.args[index]);
     };
     a[Op.ObjectPropertyCall] = function (block) {
@@ -171,6 +278,7 @@
     a[Op.GetObjectProperty] = function (block) {
         let prop = block.stack.pop();
         let obj = block.stack.pop();
+        block.log('#', prop, obj);
         block.stack.push(obj[prop]);
     };
     a[Op.MakeArray] = function (block) {
@@ -179,6 +287,7 @@
         for (let i = 0; i < elements; i++)
             arr[elements - i - 1] = block.stack.pop();
         block.stack.push(arr);
+        block.log('Create Array');
     };
     a[Op.Debugger] = function (block) {
         debugger;
@@ -209,57 +318,70 @@
         let index = block.readI32();
         let value = block.stack.pop();
         block.stack.push(block.definitions[index].value = value);
+        block.log(`ASSIGN ${ typeof value === 'string' || typeof value === 'number' ? value : typeof value } -> $${ index }`);
     };
     a[Op.Or] = function (block) {
         let r = block.stack.pop();
         let l = block.stack.pop();
         block.stack.push(r || l);
+        block.log('||');
     };
     a[Op.And] = function (block) {
         let r = block.stack.pop();
         let l = block.stack.pop();
         block.stack.push(r && l);
+        block.log('&&');
     };
     a[Op.NotSymbol] = function (block) {
         let val = block.stack.pop();
         block.stack.push(!val);
+        block.log('!');
     };
     a[Op.NegateSymbol] = function (block) {
         let val = block.stack.pop();
         block.stack.push(~val);
+        block.log('~');
     };
     a[Op.TypeOf] = function (block) {
         let val = block.stack.pop();
         block.stack.push(typeof val);
+        block.log('typeof');
     };
     a[Op.GetVariableValue] = function (block) {
         let index = block.readI32();
         let value = block.definitions[index].value;
         block.stack.push(value);
+        block.log(`MOV ${ block.blockId }-$${ index } ${ typeof value === 'string' || typeof value === 'number' ? value : typeof value } -> stack`);
     };
     a[Op.I8] = function (block) {
         let num = block.readI8();
         block.stack.push(num);
+        block.log(`MOV ${ num } -> stack`);
     };
     a[Op.I32] = function (block) {
         let num = block.readI32();
         block.stack.push(num);
+        block.log(`MOV ${ num } -> stack`);
     };
     a[Op.BOOL] = function (block) {
         let bool = !!block.readI8();
+        block.log(`MOV ${ bool.toString() } -> stack`);
         block.stack.push(bool);
     };
     a[Op.Jump] = function (block) {
         let dst = block.readI32();
         block.ip = dst;
+        block.log(`JMP @${ dst }`);
     };
     a[Op.JumpToBlock] = function (block) {
         let blockid = block.readI32();
+        block.log(`JMP to Block ->${ blockid }`);
         block.runChild(blockid).makeFn().apply(block.scope);
     };
     a[Op.JumpIfFalse] = function (block) {
         let dst = block.readI32();
         let val = block.stack.pop();
+        block.log(`[JMP] From: ${ block.ip } to @${ dst }`);
         if (!val)
             block.ip = dst;
     };
@@ -311,6 +433,7 @@
     a[Op.NotEqualTo] = function (block) {
         let right = block.stack.pop();
         let left = block.stack.pop();
+        block.log(`Comparing ${ right } ${ left }`);
         block.stack.push(left != right);
     };
     a[Op.NotEqualToStrict] = function (block) {
@@ -372,7 +495,7 @@
     };
     a[Op.Throw] = function (block) {
         let arg = block.stack.pop();
-        throw 1;
+        throw arg;
     };
     a[Op.Null] = function (block) {
         block.stack.push(null);
@@ -449,7 +572,7 @@
             this.startOffset = _startOffset;
             this.running = true;
             if (blockId !== _blockId)
-                throw 2;
+                throw 'The block does not match up';
             this.ip = _startOffset;
             for (let i = 0; i < _totalDefinitions; i++) {
                 this.definitions[i] = { value: undefined };
@@ -501,8 +624,12 @@
         }
         runChild(blockId) {
             if (__scopes[blockId][1] !== this.blockId)
-                throw 3;
+                throw `${ blockId } is not a child scope of ${ this.blockId }`;
             return new Block(blockId, this);
+        }
+        log(...args) {
+            let space = new Array(this.blockId * 4).join(' ');
+            console.log(space, ...args);
         }
         makeFn() {
             var that = this;
@@ -571,7 +698,9 @@
         run() {
             try {
                 for (; this.U < 1;) {
+                    let op = this.ip;
                     let header = bytes[this.ip++];
+                    this.log('[' + op + '] ' + Op[header], header);
                     a[header](this);
                 }
                 return this.returnRegister;
@@ -583,7 +712,7 @@
                     this.stack = [this.stack];
                     return this.run();
                 }
-                throw 4;
+                throw err;
             }
         }
     }

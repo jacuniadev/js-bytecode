@@ -41,13 +41,13 @@ a[Op.Call] = function(block){
     for(let i = 0 ; i < totalArgs; i++) args[ totalArgs - i - 1] = block.stack.pop();
     
     let val = fn.apply(block.scope, args);
-    //block.log("Function returned: " + val);
+    block.log("Function returned: " + val);
     block.stack.push(val);
 }
 
 a[Op.ReturnValue] = function(block){
     let value = block.stack.pop();
-    //block.log("Returning: " + value);
+    block.log("Returning: " + value);
     block.returnRegister = value;
     block.U++;
     
@@ -62,19 +62,19 @@ a[Op.AssignValueToGlobal] = function(block){
     let prop = block.stack.pop();
     let val = block.stack.pop();
     block.stack.push(block.scope[prop] = val);
-    //block.log(`MOV ${typeof(val) === "string" || typeof(val) === "number" ? val : typeof(val)} -> global.${prop}`);
+    block.log(`MOV ${typeof(val) === "string" || typeof(val) === "number" ? val : typeof(val)} -> global.${prop}`);
     
 }
 a[Op.GetGlobalVariableValue] = function(block){
     let prop = block.stack.pop();
-    //block.log("property", prop);
+    block.log("property", prop);
     testIsGlobalPropOrFunction(prop);
     block.stack.push(globalScope[prop])
     
 }
 a[Op.GetArguments] = function(block){
     let index = block.readI8();
-    //block.log("Loading value into arguments", block.args[index]);
+    block.log("Loading value into arguments", block.args[index]);
     block.stack.push(block.args[index]);
     
 }
@@ -97,7 +97,7 @@ a[Op.String] = function(block){
 a[Op.GetObjectProperty] = function(block){
     let prop = block.stack.pop();
     let obj = block.stack.pop();
-    //block.log("#", prop, obj);
+    block.log("#", prop, obj);
     block.stack.push(obj[prop]);
     
 }
@@ -106,7 +106,7 @@ a[Op.MakeArray] = function(block){
     let arr = new Array(elements);
     for(let i = 0 ; i < elements; i++) arr[elements - i - 1 ] = block.stack.pop();
     block.stack.push(arr);
-    //block.log("Create Array");
+    block.log("Create Array");
     
 }
 a[Op.Debugger] = function(block){
@@ -143,7 +143,7 @@ a[Op.AssignValue] = function(block){
     let index = block.readI32();
     let value = block.stack.pop();
     block.stack.push(block.definitions[index].value = value);
-    //block.log(`ASSIGN ${typeof(value) === "string" || typeof(value) === "number" ? value : typeof(value)} -> $${index}`);
+    block.log(`ASSIGN ${typeof(value) === "string" || typeof(value) === "number" ? value : typeof(value)} -> $${index}`);
     
 }
 
@@ -151,7 +151,7 @@ a[Op.Or] = function(block){
     let r = block.stack.pop();
     let l = block.stack.pop();
     block.stack.push(r || l);
-    //block.log("||")
+    block.log("||")
 }
 
 
@@ -159,67 +159,67 @@ a[Op.And] = function(block){
     let r = block.stack.pop();
     let l = block.stack.pop();
     block.stack.push(r && l);
-    //block.log("&&")
+    block.log("&&")
 }
 
 a[Op.NotSymbol] = function(block){
     let val = block.stack.pop();
     block.stack.push(!val);
-    //block.log("!")
+    block.log("!")
 }
 
 a[Op.NegateSymbol] = function(block){
     let val = block.stack.pop();
     block.stack.push(~val);
-    //block.log("~")
+    block.log("~")
 }
 
 a[Op.TypeOf] = function(block){
     let val = block.stack.pop();
     block.stack.push(typeof(val));
-    //block.log("typeof")
+    block.log("typeof")
 }
 
 a[Op.GetVariableValue] = function(block){
     let index = block.readI32();
     let value = block.definitions[index].value;
     block.stack.push(value);
-    //block.log(`MOV ${block.blockId}-$${index} ${typeof(value) === "string" || typeof(value) === "number" ? value : typeof(value)} -> stack`);
+    block.log(`MOV ${block.blockId}-$${index} ${typeof(value) === "string" || typeof(value) === "number" ? value : typeof(value)} -> stack`);
     
 }
 a[Op.I8] = function(block){
     let num = block.readI8();
     block.stack.push(num);
-    //block.log(`MOV ${num} -> stack`);
+    block.log(`MOV ${num} -> stack`);
     
 }
 a[Op.I32] = function(block){
     let num = block.readI32();
     block.stack.push(num);
-    //block.log(`MOV ${num} -> stack`);
+    block.log(`MOV ${num} -> stack`);
     
 }
 a[Op.BOOL] = function(block){
     let bool = !!block.readI8();
-    //block.log(`MOV ${bool.toString()} -> stack`);
+    block.log(`MOV ${bool.toString()} -> stack`);
     block.stack.push(bool);
     
 }
 a[Op.Jump] = function(block){
     let dst = block.readI32();
     block.ip = dst;
-    //block.log(`JMP @${dst}`);
+    block.log(`JMP @${dst}`);
     
 }
 a[Op.JumpToBlock] = function(block){
     let blockid = block.readI32();
-    //block.log(`JMP to Block ->${blockid}`);
+    block.log(`JMP to Block ->${blockid}`);
     block.runChild(blockid).makeFn().apply(block.scope);
 }
 a[Op.JumpIfFalse] = function(block){
     let dst = block.readI32();
     let val = block.stack.pop();
-    //block.log(`[JMP] From: ${block.ip} to @${dst}`);
+    block.log(`[JMP] From: ${block.ip} to @${dst}`);
     if(!val) block.ip = dst;
 }
 
@@ -278,7 +278,7 @@ a[Op.EqualToStrict] = function(block){
 a[Op.NotEqualTo] = function(block){
     let right = block.stack.pop();
     let left = block.stack.pop();
-    //block.log(`Comparing ${right} ${left}`);
+    block.log(`Comparing ${right} ${left}`);
     block.stack.push(left != right);
 }
 a[Op.NotEqualToStrict] = function(block){
@@ -519,10 +519,10 @@ class Block{
         return new Block(blockId, this);
     }
 
-   /* log(...args){
+    log(...args){
         let space = new Array(this.blockId * 4).join(" ");
         console.log(space, ...args);
-    }*/
+    }
 
     makeFn(){
         var that = this;
@@ -598,309 +598,10 @@ class Block{
     run(){
         try{
             for (; this.U < 1;) {
-                //let op = this.ip;
+                let op = this.ip;
                 let header = bytes[this.ip++];
-                //this.log("[" + op + "] " + Op[header], header);
+                this.log("[" + op + "] " + Op[header], header);
                 a[header](this);
-                /*switch(header){
-                    case Op.CreateFunction: {
-                        let blockid = this.readI32();
-                        this.stack.push(this.runChild(blockid).makeFn());
-                        break;
-                    }
-                    case Op.Call: {
-                        let totalArgs = this.readI8();
-                        let args = [];
-                        let fn = this.stack.pop();
-                        for(let i = 0 ; i < totalArgs; i++) args[ totalArgs - i - 1] = this.stack.pop();
-                        
-                        let val = fn.apply(this.scope, args);
-                        this.log("Function returned: " + val);
-                        this.stack.push(val);
-                        break;
-                    }
-                    case Op.ReturnValue: {
-                        let value = this.stack.pop();
-                        this.log("Returning: " + value);
-                        this.returnRegister = value;
-                        this.U++;
-                        break;
-                    }
-                    case Op.RegisterString: {
-                        this._loadString();
-                        break;
-                    }
-                    case Op.AssignValueToGlobal: {
-                        let prop = this.stack.pop();
-                        let val = this.stack.pop();
-                        this.stack.push(this.scope[prop] = val);
-                        this.log(`MOV ${typeof(val) === "string" || typeof(val) === "number" ? val : typeof(val)} -> global.${prop}`);
-                        break;
-                    }
-                    case Op.GetGlobalVariableValue: {
-                        let prop = this.stack.pop();
-                        this.log("property", prop);
-                        testIsGlobalPropOrFunction(prop);
-                        this.stack.push(globalScope[prop])
-                        break;
-                    }
-                    case Op.GetArguments: {
-                        let index = this.readI8();
-                        this.log("Loading value into arguments", this.args[index]);
-                        this.stack.push(this.args[index]);
-                        break;
-                    }
-                    case Op.ObjectPropertyCall: {
-                        let totalArgs = this.readI8();
-                        let args = [];
-                        let obj = this.stack.pop();
-                        let prop = this.stack.pop()
-                        for(let i = 0; i < totalArgs; i++) args[ totalArgs - i - 1 ] = this.stack.pop();
-                        let fn = obj[prop];
-                        let val = fn.apply(obj, args);
-                        this.stack.push(val);
-                        break;
-                    }
-                    case Op.String: {
-                        let str = this.readString();
-                        this.stack.push(str);
-                        break;
-                    }
-                    case Op.GetObjectProperty: {
-                        let prop = this.stack.pop();
-                        let obj = this.stack.pop();
-                        this.log("#", prop, obj);
-                        this.stack.push(obj[prop]);
-                        break;
-                    }
-                    case Op.MakeArray: {
-                        let elements = this.readI32();
-                        let arr = new Array(elements);
-                        for(let i = 0 ; i < elements; i++) arr[elements - i - 1 ] = this.stack.pop();
-                        this.stack.push(arr);
-                        this.log("Create Array");
-                        break;
-                    }
-                    case Op.Debugger: {
-                        debugger;
-                        break;
-                    }
-                    case Op.MakeObject: {
-                        let props = this.readI32();
-                        let obj = {};
-                        let values = new Array(props * 2);
-                        for(let i = 0 ; i < props; i++){
-                            values[(props - i) * 2 - 1] = this.stack.pop();
-                            values[(props - i) * 2 - 1 - 1] = this.stack.pop();
-                        }
-                        for(let i = 0; i < props * 2; i +=2){
-                            obj[values[i]] = values[i + 1];
-                        }
-                        this.stack.push(obj);
-                        break;
-                    }
-                    case Op.This: {
-                        this.stack.push(this.scope);
-                        break;
-                    }
-                    case Op.SetObjectProperty: {
-                        
-                        let property = this.stack.pop();
-                        let obj = this.stack.pop();
-                        let value = this.stack.pop();
-                        obj[property] = value;
-                        break;
-                    }
-                    case Op.AssignValue: {
-                        let index = this.readI32();
-                        let value = this.stack.pop();
-                        this.parent && this.log(this.parent.definitions);
-                        this.definitions[index].value = value;
-                        this.log(`ASSIGN ${typeof(value) === "string" || typeof(value) === "number" ? value : typeof(value)} -> $${index}`);
-                        break;
-                    }
-                    case Op.GetVariableValue: {
-                        let index = this.readI32();
-                        let value = this.definitions[index].value;
-                        this.stack.push(value);
-                        this.log(`MOV ${this.blockId}-$${index} ${typeof(value) === "string" || typeof(value) === "number" ? value : typeof(value)} -> stack`);
-                        break;
-                    }
-                    case Op.I8: {
-                        let num = this.readI8();
-                        this.stack.push(num);
-                        this.log(`MOV ${num} -> stack`);
-                        break;
-                    }
-                    case Op.I32: {
-                        let num = this.readI32();
-                        this.stack.push(num);
-                        this.log(`MOV ${num} -> stack`);
-                        break;
-                    }
-                    case Op.BOOL: {
-                        let bool = !!this.readI8();
-                        this.log(`MOV ${bool.toString()} -> stack`);
-                        this.stack.push(bool);
-                        break;
-                    }
-                    case Op.Jump: {
-                        let dst = this.readI32();
-                        this.ip = dst;
-                        this.log(`JMP @${dst}`);
-                        break;
-                    }
-                    case Op.JumpToBlock: {
-                        let block = this.readI32();
-                        this.log(`JMP to Block ->${block}`);
-                        this.runChild(block).makeFn().apply(this.scope);
-                        break;
-                    }
-                    case Op.JumpIfFalse: {
-                        let dst = this.readI32();
-                        let val = this.stack.pop();
-                        if(!val) this.ip = dst;
-                        break;
-                    }
-                    case Op.New: {
-                        let totalArgs = this.readI32();
-                        let args = new Array(totalArgs);
-                        for(let i = 0 ; i < totalArgs; i++) args[totalArgs - i - 1] = this.stack.pop();
-                        let obj = this.stack.pop();
-                        let instace = construct(obj, args)
-                        this.stack.push(instace);
-                        break;
-                    }
-                    case Op.END: {
-                        this.returnRegister = undefined;
-                        this.U++;
-                        this.ip = -1;
-                        this.S = [];
-                        break;
-                    }
-                    case Op.LessThan: {
-                        let right = this.stack.pop();
-                        let left = this.stack.pop();
-                        this.stack.push(left < right);
-                        break;
-                    }
-                    case Op.LessThanOrEqual: {
-                        let right = this.stack.pop();
-                        let left = this.stack.pop();
-                        this.stack.push(left <= right);
-                        break;
-                    }
-                    case Op.GreaterThan: {
-                        let right = this.stack.pop();
-                        let left = this.stack.pop();
-                        this.stack.push(left > right);
-                        break;
-                    }
-                    case Op.GreaterThanOrEqual: {
-                        let right = this.stack.pop();
-                        let left = this.stack.pop();
-                        this.stack.push(left >= right);
-                        break;
-                    }
-                    case Op.EqualTo: {
-                        let right = this.stack.pop();
-                        let left = this.stack.pop();
-                        this.stack.push(left == right);
-                        break;
-                    }
-                    case Op.EqualToStrict: {
-                        let right = this.stack.pop();
-                        let left = this.stack.pop();
-                        this.stack.push(left === right);
-                        break;
-                    }
-                    case Op.NotEqualTo: {
-                        let right = this.stack.pop();
-                        let left = this.stack.pop();
-                        this.stack.push(left != right);
-                        break;
-                    }
-                    case Op.NotEqualToStrict: {
-                        let right = this.stack.pop();
-                        let left = this.stack.pop();
-                        this.stack.push(left !== right);
-                        break;
-                    }
-                    case Op.Add: {
-                        let right = this.stack.pop();
-                        let left = this.stack.pop();
-                        this.stack.push(left + right);
-                        break;
-                    }
-                    case Op.Sub: {
-                        let right = this.stack.pop();
-                        let left = this.stack.pop();
-                        this.stack.push(left - right);
-                        break;
-                    }
-                    case Op.Multiply: {
-                        let right = this.stack.pop();
-                        let left = this.stack.pop();
-                        this.stack.push(left * right);
-                        break;
-                    }
-                    case Op.Divide: {
-                        let right = this.stack.pop();
-                        let left = this.stack.pop();
-                        this.stack.push(left / right);
-                        break;
-                    }
-                    case Op.Remainder: {
-                        let right = this.stack.pop();
-                        let left = this.stack.pop();
-                        this.stack.push(left % right);
-                        break;
-                    }
-                    case Op.BitAnd: {
-                        let right = this.stack.pop();
-                        let left = this.stack.pop();
-                        this.stack.push(left & right);
-                        break;
-                    }
-                    case Op.BitOr: {
-                        let right = this.stack.pop();
-                        let left = this.stack.pop();
-                        this.stack.push(left | right);
-                        break;
-                    }
-                    case Op.BitXOR: {
-                        let right = this.stack.pop();
-                        let left = this.stack.pop();
-                        this.stack.push(left ^ right);
-                        break;
-                    }
-                    case Op.BitLeftShift: {
-                        let right = this.stack.pop();
-                        let left = this.stack.pop();
-                        this.stack.push(left << right);
-                        break;
-                    }
-                    case Op.BitRightShift: {
-                        let right = this.stack.pop();
-                        let left = this.stack.pop();
-                        this.stack.push(left >> right);
-                        break;
-                    }
-                    case Op.BitZeroFillRightShift: {
-                        let right = this.stack.pop();
-                        let left = this.stack.pop();
-                        this.stack.push(left >>> right);
-                        break;
-                    }
-                    case Op.RaiseExponent: {
-                        let right = this.stack.pop();
-                        let left = this.stack.pop();
-                        this.stack.push(left ** right);
-                        break;
-                    }
-                    default:
-                        throw("Unknown op" + Op[header]);
-                }*/
             }
             return this.returnRegister;
         }catch(err){

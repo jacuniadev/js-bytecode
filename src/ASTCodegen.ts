@@ -520,6 +520,7 @@ export function GenerateBreakStatement(node: BreakStatement, scope: Scope){
 export function GenerateTryStatement(node: TryStatement, scope: Scope){
     //throTryStatement
     scope.generate(node.block);
+    if(node.finalizer) scope.generate(node.finalizer);
 }
 
 export function GenerateSwitchStatement(node: SwitchStatement, scope: Scope){
@@ -694,14 +695,19 @@ export function GenerateMemberExpression(node: MemberExpression, scope: Scope){
     
     switch(object.type){
         case "Identifier":
-            let id = scope.getVariableId(object.name);
-            if(id === -1){
-                let id = scope.getStringId(object.name);
-                emitString(scope, id);
-                emitGetGlobalVariableValue(scope);
+            //added this check to make sure arguments isnt over ridden
+            if(object.name === "arguments"){
+                emitArguments(scope);
             }else{
-                emitGetVariableValue(scope, id);
-            }   
+                let id = scope.getVariableId(object.name);
+                if(id === -1){
+                    let id = scope.getStringId(object.name);
+                    emitString(scope, id);
+                    emitGetGlobalVariableValue(scope);
+                }else{
+                    emitGetVariableValue(scope, id);
+                }   
+            }
             break;
         default:
             scope.generate(object);
