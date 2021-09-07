@@ -51,6 +51,11 @@ export class Scope{
     copyInheretedIntoLocal(){
         for(const key in this.inheretedSet){
             let parentVariableId = this.inheretedSet[key];
+
+            if(this.set.hasOwnProperty(key)){
+                continue;
+            }
+
             if(parentVariableId === -1) {
                 this.strings.add(key);
                 continue;
@@ -89,6 +94,9 @@ export class Scope{
         let id = this.varId++;
         this.set[name] = id;
         this.variables[id] = id;
+        if(this.inheretedSet.hasOwnProperty(name)){
+            delete this.inheretedSet[name];
+        }
     }
 
     makeLabel(byteLength: number): Label{
@@ -137,7 +145,7 @@ export class Scope{
                         }
                     }
                     //its not local
-                    return scope.addInheretedVar(node.name);
+                    if(!scope.set.hasOwnProperty(node.name)) return scope.addInheretedVar(node.name);
                 }
             }
         });
