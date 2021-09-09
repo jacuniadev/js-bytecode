@@ -260,7 +260,7 @@ export function emitI32(scope: Scope, n: number){
 }
 
 export function emitF64(scope: Scope, n: number){
-    __writeI8(scope, Op.I32);
+    __writeI8(scope, Op.F64);
     __writeF64(scope, n);
 }
 
@@ -603,9 +603,9 @@ export function GenerateSwitchStatement(node: SwitchStatement, scope: Scope){
 }
 
 export function GenerateAssignmentExpression(node: AssignmentExpression, scope: Scope){
-    scope.generate(node.right);
     let left = node.left;
     if(node.operator === "="){
+        scope.generate(node.right);
         switch(left.type){
             case "Identifier":
                 let id = scope.getVarId(left.name);
@@ -643,6 +643,7 @@ export function GenerateAssignmentExpression(node: AssignmentExpression, scope: 
                     let stringid = scope.getStringId(left.name);
                     emitString(scope, stringid);
                     emitGetGlobalVariableValue(scope);
+                    scope.generate(node.right);
                     switch(node.operator){
                         case "^=":
                             emitBitXOR(scope);
@@ -669,6 +670,7 @@ export function GenerateAssignmentExpression(node: AssignmentExpression, scope: 
                     emitAssignValueToGlobal(scope);
                 }else{
                     emitGetVariableValue(scope, id);
+                    scope.generate(node.right);
                     switch(node.operator){
                         case "^=":
                             emitBitXOR(scope);
@@ -696,7 +698,7 @@ export function GenerateAssignmentExpression(node: AssignmentExpression, scope: 
                 break;
             case "MemberExpression": {
 
-                
+                scope.generate(node.right);
                 scope.generate(left.object);
                 let property = left.property;
                 //if its computed, dont run that shit

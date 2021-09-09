@@ -1,5 +1,5 @@
 const __F64__ = new Float64Array(1);
-const __I8__ = new Uint8Array(__F64__);
+const __I8__ = new Uint8Array(__F64__.buffer);
 
 export const isWholeNumber = (n: number): boolean => (n % 1) === 0;
 export const isValidI8 = (n: number): boolean => (n >= 0 && n <= 0xff && isWholeNumber(n));

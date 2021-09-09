@@ -73,9 +73,11 @@ export const Op: { [key: string]: number } = {
     Void : 64,
     Duplicate: 65,
     Regex: 66,
+
+    F64: 67,
 };
 
-/*
+
 export const OpcodeString: { [key: number]: string } = {
     [Op.Jump] : "Jump",
     [Op.END] : "End",
@@ -150,4 +152,6 @@ export const OpcodeString: { [key: number]: string } = {
     [Op.PlusOutFront] : "PlusOutFront",
     [Op.Void] : "Void",
     [Op.Duplicate] : "Duplicate",
-};*/
+    [Op.Regex] : "Regex",
+    [Op.F64] : "Load F64",
+};

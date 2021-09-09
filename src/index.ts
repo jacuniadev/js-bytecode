@@ -59,5 +59,4 @@ async function writeMin(){
 
 writeMin();
 
-
 //Function(output)();

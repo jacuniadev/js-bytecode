@@ -151,8 +151,7 @@ a[Op.SetObjectProperty] = function(block){
     let property = block.stack.pop();
     let obj = block.stack.pop();
     let value = block.stack.pop();
-    obj[property] = value;
-    
+    block.stack.push(obj[property] = value);
 }
 a[Op.AssignValue] = function(block){
     let index = block.readI32();
@@ -211,8 +210,14 @@ a[Op.I32] = function(block){
     let num = block.readI32();
     block.stack.push(num);
     //block.log(`MOV ${num} -> stack`);
-    
 }
+
+a[Op.F64] = function(block){
+    let num = block.readF64();
+    block.stack.push(num);
+    //block.log(`MOV ${num} -> stack`);
+}
+
 a[Op.BOOL] = function(block){
     let bool = !!block.readI8();
     //block.log(`MOV ${bool.toString()} -> stack`);
@@ -537,10 +542,10 @@ class Block{
         return new Block(blockId, this);
     }
 
-   /* log(...args){
+    log(...args){
         let space = new Array(this.blockId * 4).join(" ");
         console.log(space, ...args);
-    }*/
+    }
 
     makeFn(){
         var that = this;
@@ -616,7 +621,7 @@ class Block{
     run(){
         try{
             for (; this.U < 1;) {
-                //this.log("[" + this.ip + "] " + OpcodeString[bytes[this.ip]], bytes[this.ip]);
+             //   this.log("[" + this.ip + "] " + OpcodeString[bytes[this.ip]], bytes[this.ip]);
                 a[bytes[this.ip++]](this);
             }
             return this.returnRegister;
