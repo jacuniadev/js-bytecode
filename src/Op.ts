@@ -74,6 +74,7 @@ export const Op: { [key: string]: number } = {
     Duplicate: 65,
 };
 
+/*
 export const OpcodeString: { [key: number]: string } = {
     [Op.Jump] : "Jump",
     [Op.END] : "End",
@@ -148,4 +149,4 @@ export const OpcodeString: { [key: number]: string } = {
     [Op.PlusOutFront] : "PlusOutFront",
     [Op.Void] : "Void",
     [Op.Duplicate] : "Duplicate",
-};
+};*/

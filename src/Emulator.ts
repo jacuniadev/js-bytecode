@@ -1,5 +1,5 @@
 // @ts-nocheck
-import {Op, OpcodeString} from "./Op";
+import {Op, /*OpcodeString*/} from "./Op";
 
 let globalScope = "object" == typeof globalThis ? globalThis : "object" == typeof window ? window : self;
 
@@ -31,7 +31,7 @@ let __program = null;
 let a = [];
 a[Op.CreateFunction] = function(block){
     let blockid = block.readI32();
-    block.log("Binding function to: " + blockid);
+    //block.log("Binding function to: " + blockid);
     block.stack.push(block.runChild(blockid).makeFn());
 }
 
@@ -41,14 +41,14 @@ a[Op.Call] = function(block){
     let fn = block.stack.pop();
     for(let i = 0 ; i < totalArgs; i++) args[ totalArgs - i - 1] = block.stack.pop();
     
-    let val = fn.apply(block.scope, args);
-    block.log("Function returned: " + (typeof(val) === "function" ? "function" : val));
+    let val = fn.apply(globalThis, args); //becareful
+    //block.log("Function returned: " + (typeof(val) === "function" ? "function" : val));
     block.stack.push(val);
 }
 
 a[Op.ReturnValue] = function(block){
     let value = block.stack.pop();
-    block.log("Returning: " + (typeof(value) === "function" ? "function" : value));
+    //block.log("Returning: " + (typeof(value) === "function" ? "function" : value));
     block.returnRegister = value;
     block.U++;
     
@@ -63,19 +63,19 @@ a[Op.AssignValueToGlobal] = function(block){
     let prop = block.stack.pop();
     let val = block.stack.pop();
     block.stack.push(block.scope[prop] = val);
-    block.log(`MOV ${typeof(val) === "string" || typeof(val) === "number" ? val : typeof(val)} -> global.${prop}`);
+    //block.log(`MOV ${typeof(val) === "string" || typeof(val) === "number" ? val : typeof(val)} -> global.${prop}`);
     
 }
 a[Op.GetGlobalVariableValue] = function(block){
     let prop = block.stack.pop();
-    block.log("property", prop);
+    //block.log("property", prop);
     testIsGlobalPropOrFunction(prop);
     block.stack.push(globalScope[prop])
     
 }
 a[Op.GetArguments] = function(block){
     let index = block.readI8();
-    block.log("Loading value into arguments", block.args[index]);
+    //block.log("Loading value into arguments", block.args[index]);
     block.stack.push(block.args[index]);
     
 }
@@ -98,7 +98,7 @@ a[Op.String] = function(block){
 a[Op.GetObjectProperty] = function(block){
     let prop = block.stack.pop();
     let obj = block.stack.pop();
-    block.log("#", prop, obj);
+    //block.log("#", prop, obj);
     block.stack.push(obj[prop]);
     
 }
@@ -107,7 +107,7 @@ a[Op.MakeArray] = function(block){
     let arr = new Array(elements);
     for(let i = 0 ; i < elements; i++) arr[elements - i - 1 ] = block.stack.pop();
     block.stack.push(arr);
-    block.log("Create Array");
+    //block.log("Create Array");
     
 }
 a[Op.Debugger] = function(block){
@@ -151,7 +151,7 @@ a[Op.AssignValue] = function(block){
     let index = block.readI32();
     let value = block.stack.pop();
     block.stack.push(block.definitions[index].value = value);
-    block.log(`ASSIGN ${typeof(value) === "string" || typeof(value) === "number" ? value : typeof(value)} -> $${index}`);
+    //block.log(`ASSIGN ${typeof(value) === "string" || typeof(value) === "number" ? value : typeof(value)} -> $${index}`);
     
 }
 
@@ -159,74 +159,74 @@ a[Op.Or] = function(block){
     let r = block.stack.pop();
     let l = block.stack.pop();
     block.stack.push(r || l);
-    block.log("||")
+    //block.log("||")
 }
 
 a[Op.And] = function(block){
     let r = block.stack.pop();
     let l = block.stack.pop();
     block.stack.push(r && l);
-    block.log("&&")
+    //block.log("&&")
 }
 
 a[Op.NotSymbol] = function(block){
     let val = block.stack.pop();
     block.stack.push(!val);
-    block.log("!")
+    //block.log("!")
 }
 
 a[Op.NegateSymbol] = function(block){
     let val = block.stack.pop();
     block.stack.push(~val);
-    block.log("~")
+    //block.log("~")
 }
 
 a[Op.TypeOf] = function(block){
     let val = block.stack.pop();
     block.stack.push(typeof(val));
-    block.log("typeof")
+    //block.log("typeof")
 }
 
 a[Op.GetVariableValue] = function(block){
     let index = block.readI32();
     let value = block.definitions[index].value;
     block.stack.push(value);
-    block.log(`MOV ${block.blockId}-$${index} ${typeof(value) === "string" || typeof(value) === "number" ? value : typeof(value)} -> stack`);
+    //block.log(`MOV ${block.blockId}-$${index} ${typeof(value) === "string" || typeof(value) === "number" ? value : typeof(value)} -> stack`);
     
 }
 a[Op.I8] = function(block){
     let num = block.readI8();
     block.stack.push(num);
-    block.log(`MOV ${num} -> stack`);
+    //block.log(`MOV ${num} -> stack`);
     
 }
 a[Op.I32] = function(block){
     let num = block.readI32();
     block.stack.push(num);
-    block.log(`MOV ${num} -> stack`);
+    //block.log(`MOV ${num} -> stack`);
     
 }
 a[Op.BOOL] = function(block){
     let bool = !!block.readI8();
-    block.log(`MOV ${bool.toString()} -> stack`);
+    //block.log(`MOV ${bool.toString()} -> stack`);
     block.stack.push(bool);
     
 }
 a[Op.Jump] = function(block){
     let dst = block.readI32();
     block.ip = dst;
-    block.log(`JMP @${dst}`);
+    //block.log(`JMP @${dst}`);
     
 }
 a[Op.JumpToBlock] = function(block){
     let blockid = block.readI32();
-    block.log(`JMP to Block ->${blockid}`);
+    //block.log(`JMP to Block ->${blockid}`);
     block.runChild(blockid).makeFn().apply(block.scope);
 }
 a[Op.JumpIfFalse] = function(block){
     let dst = block.readI32();
     let val = block.stack.pop();
-    block.log(`[JMP] From: ${block.ip} to @${dst}`);
+    //block.log(`[JMP] From: ${block.ip} to @${dst}`);
     if(!val) block.ip = dst;
 }
 
@@ -285,7 +285,7 @@ a[Op.EqualToStrict] = function(block){
 a[Op.NotEqualTo] = function(block){
     let right = block.stack.pop();
     let left = block.stack.pop();
-    block.log(`Comparing ${right} ${left}`);
+    //block.log(`Comparing ${right} ${left}`);
     block.stack.push(left != right);
 }
 a[Op.NotEqualToStrict] = function(block){
@@ -525,10 +525,10 @@ class Block{
         return new Block(blockId, this);
     }
 
-    log(...args){
+   /* log(...args){
         let space = new Array(this.blockId * 4).join(" ");
         console.log(space, ...args);
-    }
+    }*/
 
     makeFn(){
         var that = this;
@@ -604,7 +604,7 @@ class Block{
     run(){
         try{
             for (; this.U < 1;) {
-                this.log("[" + this.ip + "] " + OpcodeString[bytes[this.ip]], bytes[this.ip]);
+                //this.log("[" + this.ip + "] " + OpcodeString[bytes[this.ip]], bytes[this.ip]);
                 a[bytes[this.ip++]](this);
             }
             return this.returnRegister;
