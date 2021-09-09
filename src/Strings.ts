@@ -1,5 +1,6 @@
 import { Op } from "./Op";
 import { forEveryParser, Scope } from "./Parserv2";
+import { i32Bytes } from "./Utils";
 
 export class Strings {
     public id = 0;
@@ -12,11 +13,10 @@ export class Strings {
     }
 
     add(string: string){
-        if(string.length > 0xff) throw("Cant support strings over 255 length yet");
+        if(string.length > 0xffffffff) throw("Cant support strings over 0xffffffff length yet");
         //wtf javascript
         if(string === "__proto__") string = "____proto____";
-        console.log(string, "added");
-        
+       
         if(!Object.hasOwnProperty.apply(this.set, [string])){
             let id = this.id++;
             this.set[string] = id;
@@ -43,7 +43,16 @@ export class Strings {
         let buffer = [];
         this.strings.forEach(str => {
             buffer.push(Op.RegisterString);
-            buffer.push(str.length)
+
+            let strLength = str.length;
+            if(strLength >= 0xff){
+                buffer.push(0xff);
+                let bytes = i32Bytes(strLength);
+                bytes.forEach(byte => buffer.push(byte));
+            }else{
+                buffer.push(strLength);
+            }
+
             for(let i = 0 ; i < str.length; i++) buffer.push(str.charCodeAt(i));
         })
         

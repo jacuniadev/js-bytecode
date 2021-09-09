@@ -95,6 +95,13 @@ a[Op.String] = function(block){
     block.stack.push(str);
     
 }
+
+a[Op.Regex] = function(block){
+    let str = block.readString();
+    let flags = block.readString();
+    block.stack.push(new RegExp(str, flags));
+    
+}
 a[Op.GetObjectProperty] = function(block){
     let prop = block.stack.pop();
     let obj = block.stack.pop();
@@ -511,6 +518,11 @@ class Block{
 
     _loadString(): void{
         let length = this.readI8();
+       
+        if(length === 0xff){
+            length = this.readI32()
+        }
+        
         let str = "";
         let start = this.ip;
         for(let i = start; i < start + length; i++){

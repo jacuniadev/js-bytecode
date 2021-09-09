@@ -14,28 +14,28 @@ export class Label {
         this.byteLength = byteLength;
     }
 
-    exceedMaxSize(){
+    exceedMaxSize(): void{
         throw new Error("Label exceeded maximum size of: " + this.reference.byteLength);
     }
 
-    setOrigin(){
+    setOrigin(): void{
         let scope = this.scope;
         this.start = scope.offset;
         this.reference = new Uint8Array(scope._buffer, this.start, this.byteLength);
         scope.offset += this.byteLength;
     }
 
-    setTarget(){
+    setTarget(): void{
         this.destination = this.scope.offset;
     }
     
-    writeI8(n: number){
+    writeI8(n: number): void{
         if(this.offset + 1 > this.reference.length) this.exceedMaxSize();
         let i8bytes = i8Bytes(n);
         this.reference[this.offset++] = i8bytes;
     }
 
-    writeI32(n: number){
+    writeI32(n: number): void{
         for(let i = 0 ; i < this.reference.length; i++){
             if(this.reference[i] !== 0) throw("Overwriting");
         }

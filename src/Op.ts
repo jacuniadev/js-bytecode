@@ -72,6 +72,7 @@ export const Op: { [key: string]: number } = {
     PlusOutFront : 63,
     Void : 64,
     Duplicate: 65,
+    Regex: 66,
 };
 
 /*

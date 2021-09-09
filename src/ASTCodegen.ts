@@ -37,6 +37,12 @@ export function emitThis(scope: Scope){
     __writeI8(scope, Op.This);
 }
 
+export function emitRegex(scope: Scope, stringId : number, flagsId : number){
+    __writeI8(scope, Op.Regex);
+    __writeI32(scope, stringId);
+    __writeI32(scope, flagsId);
+}
+
 export function emitDuplicate(scope: Scope){
     __writeI8(scope, Op.Duplicate);
 }
@@ -312,6 +318,15 @@ export function GenerateLiteral(node: Literal, scope: Scope){
     else if(typeof(node.value) === "number") loadNumber(scope, node.value);
     else if(typeof(node.value) === "boolean") emitBOOL(scope, node.value);
     else if(node.value === null) emitNull(scope);
+    else if(node.value.constructor === RegExp){
+        let regex = (<any>node).regex;
+        let pattern = regex.pattern;
+        let stringId = scope.getStringId(pattern);
+        let flags = regex.flags;
+        let flagsId = scope.getStringId(flags);
+
+        emitRegex(scope, stringId, flagsId);
+    }
     else throw("Unsupported literal type" + node.value);
 }
 

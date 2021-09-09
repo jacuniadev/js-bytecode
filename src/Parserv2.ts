@@ -118,11 +118,7 @@ export class Scope{
     }
 
     functionDeclaration(node: FunctionDeclaration){
-
-        //if the node is equal to the topscope, only parse params and body
         if(node === this.node){
-          //  console.log("ENTER ING TJE ARGUMENTS");
-            //add the arguments definition
             let name = "arguments";
             if(this.definition_set.has(name)) return;
             if(this.reference_set.has(name)) this.reference_set.delete(name);
@@ -170,10 +166,7 @@ export class Scope{
             }
         })
     }
-
-
-    //end new methods
-
+    
     getStringId(str: string): number{
         return this.strings.get(str);
     }
@@ -311,10 +304,10 @@ export class Scope{
             let parentId = scope.parent ? scope.parent.id : 0;
             let totalDefinitions = scope.definition_set.size + scope.reference_set.size;
 
-            console.log("************" + scope.id +"**************");
-            console.log(scope.definition_set);
-            console.log(scope.reference_set);
-            console.log("---")
+      //      console.log("************" + scope.id +"**************");
+      //      console.log(scope.definition_set);
+      //      console.log(scope.reference_set);
+      //      console.log("---")
 
             let inheretedDefinitions = [];
             scope.reference_set.forEach(ref => {

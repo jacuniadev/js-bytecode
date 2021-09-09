@@ -57,6 +57,7 @@ async function writeMin(){
     fs.writeFileSync(path.join(templateOutput, "out.min.js"), result.code);
 }
 
-//Function(output)();
-
 writeMin();
+
+
+//Function(output)();
