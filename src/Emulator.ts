@@ -31,6 +31,7 @@ let __program = null;
 let a = [];
 a[Op.CreateFunction] = function(block){
     let blockid = block.readI32();
+    block.log("Binding function to: " + blockid);
     block.stack.push(block.runChild(blockid).makeFn());
 }
 
@@ -41,13 +42,13 @@ a[Op.Call] = function(block){
     for(let i = 0 ; i < totalArgs; i++) args[ totalArgs - i - 1] = block.stack.pop();
     
     let val = fn.apply(block.scope, args);
-    block.log("Function returned: " + val);
+    block.log("Function returned: " + (typeof(val) === "function" ? "function" : val));
     block.stack.push(val);
 }
 
 a[Op.ReturnValue] = function(block){
     let value = block.stack.pop();
-    block.log("Returning: " + value);
+    block.log("Returning: " + (typeof(value) === "function" ? "function" : value));
     block.returnRegister = value;
     block.U++;
     
@@ -113,6 +114,13 @@ a[Op.Debugger] = function(block){
     debugger;
     
 }
+
+a[Op.Duplicate] = function(block){
+    let v = block.stack.pop();
+    block.stack.push(v);
+    block.stack.push(v);
+}
+
 a[Op.MakeObject] = function(block){
     let props = block.readI32();
     let obj = {};
@@ -129,8 +137,8 @@ a[Op.MakeObject] = function(block){
 }
 a[Op.This] = function(block){
     block.stack.push(block.scope);
-    
 }
+
 a[Op.SetObjectProperty] = function(block){
     
     let property = block.stack.pop();
@@ -153,7 +161,6 @@ a[Op.Or] = function(block){
     block.stack.push(r || l);
     block.log("||")
 }
-
 
 a[Op.And] = function(block){
     let r = block.stack.pop();
@@ -462,10 +469,10 @@ class Block{
         this.parent = parent;
         if(this.parent){
             for (let i = 0; i < varsDefinedAboveScope.length; i++) {
-                let _blockId = varsDefinedAboveScope[i][0]; //this is like some sort of index
-                let _varid = varsDefinedAboveScope[i][1]; //i assume this is the index of the {vale: undefined} of each on the parent
-                this.inheretedDefinitions.push([_blockId, parent.definitions[_varid]]);
-                this.definitions[_varid] = parent.definitions[_varid];
+                let _localID = varsDefinedAboveScope[i][0]; //this is like some sort of index
+                let _foreignId = varsDefinedAboveScope[i][1]; //i assume this is the index of the {vale: undefined} of each on the parent
+                this.inheretedDefinitions.push([_localID, parent.definitions[_foreignId]]);
+                this.definitions[_localID] = parent.definitions[_foreignId];
             }
         }
         //change this

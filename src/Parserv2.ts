@@ -1,10 +1,20 @@
 
 import {parse} from "acorn";
 import { traverse } from "estraverse";
-import { Literal, Node } from "estree";
-import { GenerateArrayExpression, GenerateAssignmentExpression, GenerateBinaryExpression, GenerateBlockStatement, GenerateBreakStatement, GenerateCallExpression, GenerateConditionalExpression, GenerateDebuggerStatement, GenerateExpressionStatement, GenerateForStatement, GenerateFunctionDeclaration, GenerateFunctionExpression, GenerateIdentifier, GenerateIfStatement, GenerateLiteral, GenerateLogicalExpression, GenerateMemberExpression, GenerateNewExpression, GenerateObjectExpression, GenerateProgram, GenerateProperty, GenerateReturnStatement, GenerateSequenceExpression, GenerateSwitchStatement, GenerateThisExpression, GenerateThrowStatement, GenerateTryStatement, GenerateUnaryExpression, GenerateUpdateExpression, GenerateVariableDeclaration, GenerateVariableDeclarator, GenerateWhileStatement } from "./ASTCodegen";
+import { GenerateArrayExpression, GenerateAssignmentExpression, GenerateBinaryExpression, GenerateBlockStatement, GenerateBreakStatement, GenerateByteCode, GenerateCallExpression, GenerateConditionalExpression, GenerateDebuggerStatement, GenerateExpressionStatement, GenerateForStatement, GenerateFunctionDeclaration, GenerateFunctionExpression, GenerateIdentifier, GenerateIfStatement, GenerateLiteral, GenerateLogicalExpression, GenerateMemberExpression, GenerateNewExpression, GenerateObjectExpression, GenerateProgram, GenerateProperty, GenerateReturnStatement, GenerateSequenceExpression, GenerateSwitchStatement, GenerateThisExpression, GenerateThrowStatement, GenerateTryStatement, GenerateUnaryExpression, GenerateUpdateExpression, GenerateVariableDeclaration, GenerateVariableDeclarator, GenerateWhileStatement } from "./ASTCodegen";
 import { Label } from "./Label";
 import { Strings } from "./Strings";
+import { BlockStatement, ThrowStatement, SequenceExpression, ConditionalExpression, TryStatement, BreakStatement, SwitchStatement, LogicalExpression, NewExpression, DebuggerStatement, ArrayExpression, ThisExpression, FunctionExpression, Property, MemberExpression, ForStatement, ObjectExpression, UnaryExpression, UpdateExpression, ReturnStatement, CallExpression, FunctionDeclaration, Identifier, AssignmentExpression, VariableDeclaration, WhileStatement, BinaryExpression, Literal, Node, VariableDeclarator, IfStatement, Program, ExpressionStatement } from "estree";
+
+
+type Definition = {
+    localId: number;
+}
+
+type Reference = {
+    localId: number;
+    foreignId: number;
+}
 
 export class Scope{
     static id = 1;
@@ -12,91 +22,160 @@ export class Scope{
     public childNodes = [];
     public parent: Scope;
     public node: Node;
-    public varId = 0;
     public strings: Strings;
     public offset = 0;
     public _buffer = new ArrayBuffer(65535);
     public data = new Uint8Array(this._buffer);
+
     public labels: Array<Label> = [];
 
-    public variables = [];
-    public set: {[key: string]: number} = {};
-
-    public inheretedVariables = [];
-    public inheretedSet: {[key: string]: number} = {};
+    public reference_set: Map<string, Reference> = new Map();
+    public definition_set: Map<string, Definition> = new Map();
+    public function_set: Map<string, FunctionDeclaration> = new Map();
 
     constructor(node: Node, parent: Scope | null = null){
+        
         this.parent = parent;
+        this.node = node;
 
         //every node will share the same string object
         if(!this.parent){
             this.strings = new Strings(this);
         }else{
             this.strings = this.parent.strings;
+
+            parent.reference_set.forEach((ref, name) => {
+                this.addReference(name, ref.localId);
+            });
+            parent.definition_set.forEach((def, name) => {
+                this.addReference(name, def.localId);
+            });
         }
 
-        this.node = node;
-        this.findVariables();
+        this.parseScope();
     }
 
-    getStringId(str: string): number{
-        return this.strings.get(str);
+    parseScope(){
+        this.traverse(this.node);
+        this.cleanUp();
     }
 
-    getVariableId(name: string): number{
-        if(this.set.hasOwnProperty(name)) return this.set[name];
+    cleanUp(){
+        let _id = 0;
+        this.definition_set.forEach((def, name) => {
+            def.localId = _id++;
+        })
+        this.reference_set.forEach((ref, name) => {
+            ref.localId = _id++;
+        })
+    }
+
+    //begin new methods
+    addReference(name: string, foreignId: number): void{
+        let reference: Reference = {localId: null, foreignId: foreignId};
+        this.reference_set.set(name, reference);
+    }
+
+    addDefinition(name: string): void{
+        let definition: Definition = {localId: null};
+        this.definition_set.set(name, definition);
+    }
+
+    getVarId(name): number{
+        if(this.definition_set.has(name)) return this.definition_set.get(name).localId;
+        if(this.reference_set.has(name)) return this.reference_set.get(name).localId;
         return -1;
     }
 
-    copyInheretedIntoLocal(){
-        for(const key in this.inheretedSet){
-            let parentVariableId = this.inheretedSet[key];
+    varDeclaration(name: string){
+        //rules
+        //will remove any reference to that variable name
+        if(this.definition_set.has(name)) return;
+        if(this.reference_set.has(name)) this.reference_set.delete(name);
+        this.addDefinition(name);
+    }
 
-            if(this.set.hasOwnProperty(key)){
-                continue;
+    functionExpression(node: FunctionExpression){
+        if(node === this.node){
+           
+            //add the arguments definition
+            let name = "arguments";
+            if(this.definition_set.has(name)) return;
+            if(this.reference_set.has(name)) this.reference_set.delete(name);
+            this.addDefinition(name);
+
+            node.params.forEach(param => {
+                if(param.type !== "Identifier") throw("Ivalid parameter type");
+                let name = param.name;
+                if(this.definition_set.has(name)) return;
+                if(this.reference_set.has(name)) this.reference_set.delete(name);
+                this.addDefinition(name);
+            })
+            this.traverse(node.body);
+            
+            return;
+        }
+    }
+
+    functionDeclaration(node: FunctionDeclaration){
+
+        //if the node is equal to the topscope, only parse params and body
+        if(node === this.node){
+          //  console.log("ENTER ING TJE ARGUMENTS");
+            //add the arguments definition
+            let name = "arguments";
+            if(this.definition_set.has(name)) return;
+            if(this.reference_set.has(name)) this.reference_set.delete(name);
+            this.addDefinition(name);
+
+            node.params.forEach(param => {
+                if(param.type !== "Identifier") throw("Ivalid parameter type");
+                let name = param.name;
+                if(this.definition_set.has(name)) return;
+                if(this.reference_set.has(name)) this.reference_set.delete(name);
+                this.addDefinition(name);
+            })
+            this.traverse(node.body);
+            
+            return;
+        }
+        //if the var has not been defined as a var
+        let name = node.id.name;
+        if(this.definition_set.has(name)) return; //functions get overriden by this
+        if(this.reference_set.has(name)) this.reference_set.delete(name);
+        this.addDefinition(name);
+        this.function_set.set(name, node);
+    }
+
+    traverse(node){
+        let scope = this;
+        // need to scan all the for all variables defined with var
+        traverse(node, {
+            enter(node){
+                switch(node.type){
+                    case "VariableDeclarator": {
+                        if(node.id.type !== "Identifier") throw new Error("Scope.js");
+                        scope.varDeclaration(node.id.name);
+                        break;
+                    }
+                    case "FunctionDeclaration": {
+                        scope.functionDeclaration(node);
+                        return this.skip();
+                    }
+                    case "FunctionExpression": {
+                        scope.functionExpression(node);
+                        return this.skip();
+                    }
+                }
             }
-
-            if(parentVariableId === -1) {
-                this.strings.add(key);
-                continue;
-            };
-            //if its been declared anyways, use that id
-            if(this.set.hasOwnProperty(key)){
-                let localVariableId = this.set[key];
-                this.inheretedVariables.push([localVariableId, parentVariableId])
-            }else{
-                let localVariableId = this.varId++;
-                this.set[key] = localVariableId;
-                this.inheretedVariables.push([localVariableId, parentVariableId]);
-                this.variables[localVariableId] = localVariableId;
-            }
-        }
+        })
     }
 
-    _getVariable(name: string): number {
-        if(this.set.hasOwnProperty(name)) return this.set[name];
-        if(this.parent) return this.parent._getVariable(name);
-        return -1; //if its a global property happen
-    }
 
-    addInheretedVar(name: string): void{
-        if(this.inheretedSet[name]) return; //no need to go looking if we have already found it 
-        if(this.parent){
-            let variableId = this.parent._getVariable(name); 
-            this.inheretedSet[name] = variableId;
-        }else{
-            let variableId = -1;
-            this.inheretedSet[name] = variableId;
-        }
-    }
+    //end new methods
 
-    addLocalVar(name: string){
-        let id = this.varId++;
-        this.set[name] = id;
-        this.variables[id] = id;
-        if(this.inheretedSet.hasOwnProperty(name)){
-            delete this.inheretedSet[name];
-        }
+    getStringId(str: string): number{
+        return this.strings.get(str);
     }
 
     makeLabel(byteLength: number): Label{
@@ -105,60 +184,12 @@ export class Scope{
         return label;
     }
 
-    findVariables(){
-        let scope = this;
-        traverse(scope.node, {
-            enter(node, parent){
-
-                //little hack, try to float all functions to the top to prevent them from being called before being defined
-                if(node.type === "Program"){
-                    var first = "FunctionDeclaration";
-                    node.body.sort(function(x,y){ return x.type == first ? -1 : y.type == first ? 1 : 0; });
-                }
-
-                if(node.type === "FunctionDeclaration" && node !== scope.node){
-                    scope.addLocalVar(node.id.name);
-                    return this.skip();
-                }
-
-                if(node.type === "Literal" && typeof(node.value) === "string"){
-                    return scope.strings.add(node.value);
-                }
-
-                if(node.type === "MemberExpression" && !node.computed && node.property.type === "Identifier"){
-                    node.property = <Literal>{
-                        type: "Literal",
-                        value: node.property.name,
-                        raw: JSON.stringify(node.property.name)
-                    };
-                    return;
-                }
-
-                if(node.type === "Identifier"){
-                    if(parent.type === "VariableDeclarator"){
-                        scope.addLocalVar(node.name);
-                        return;
-                    }else if(parent.type === "FunctionDeclaration" || parent.type === "FunctionExpression"){
-                        if(parent.params.indexOf(node) !== -1){
-                            scope.addLocalVar(node.name);
-                            return;
-                        }
-                    }
-                    //its not local
-                    if(!scope.set.hasOwnProperty(node.name)) return scope.addInheretedVar(node.name);
-                }
-            }
-        });
-        this.copyInheretedIntoLocal();
-    }
-
     makeChild(node: Node): Scope{
         let scope = new Scope(node, this);
         this.childNodes.push(scope);
         return scope;
     }
 
-   
     generate(node: Node){
         switch(node.type){
             case "Literal":
@@ -201,7 +232,7 @@ export class Scope{
                 GenerateVariableDeclarator(node, this);
                 break;
             case "FunctionDeclaration":
-                GenerateFunctionDeclaration(node, this);
+                //GenerateFunctionDeclaration(node, this);
                 break;
             case "CallExpression":
                 GenerateCallExpression(node, this);
@@ -268,7 +299,7 @@ export class Scope{
         scopes: Array<any>,
         raw: Uint8Array
     }{
-        this.generate(this.node);
+        GenerateByteCode(this.node, this);
         
         let scopes = [];
 
@@ -278,10 +309,20 @@ export class Scope{
         forEveryParser(this, (scope: Scope)=>{
             let id = scope.id;
             let parentId = scope.parent ? scope.parent.id : 0;
-            let totalDefinitions = scope.variables.length;
-            let inheretedDefinitions = scope.inheretedVariables;
-            let offset = 0;
+            let totalDefinitions = scope.definition_set.size + scope.reference_set.size;
 
+            console.log("************" + scope.id +"**************");
+            console.log(scope.definition_set);
+            console.log(scope.reference_set);
+            console.log("---")
+
+            let inheretedDefinitions = [];
+            scope.reference_set.forEach(ref => {
+                inheretedDefinitions.push([ ref.localId, ref.foreignId ]);
+            });
+
+            //sum up all byte offset of the start of the scope
+            let offset = 0;
             forEveryParser(this, (_scope: Scope)=>{
                 if(_scope.id < scope.id) offset += _scope.offset;
             });

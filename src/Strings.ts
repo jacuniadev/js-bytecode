@@ -27,7 +27,7 @@ export class Strings {
     get(string: string): number{
         //wtf javascript
         if(string === "__proto__") string = "____proto____";
-        if(!Object.hasOwnProperty.apply(this.set, [string])) throw("Couldnt find the string: " + string);
+        if(!Object.hasOwnProperty.apply(this.set, [string])) this.add(string);
         return this.set[string];
     }
 

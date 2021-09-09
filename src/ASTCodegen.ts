@@ -37,6 +37,9 @@ export function emitThis(scope: Scope){
     __writeI8(scope, Op.This);
 }
 
+export function emitDuplicate(scope: Scope){
+    __writeI8(scope, Op.Duplicate);
+}
 
 export function emitInstanceOf(scope: Scope){
     __writeI8(scope, Op.InstanceOf);
@@ -352,7 +355,7 @@ export function GenerateCallExpression(node: CallExpression, scope: Scope){
     node.arguments.forEach(child => scope.generate(child));
     switch(callee.type){
         case "Identifier": {
-            let id = scope.getVariableId(callee.name);
+            let id = scope.getVarId(callee.name);
             if(id === -1){
                 let id = scope.getStringId(callee.name);
                 emitString(scope, id);
@@ -411,7 +414,7 @@ export function GenerateFunctionExpression(node: FunctionExpression, scope: Scop
             if(child.type === "Identifier"){
                 //redeclare the variable under the new scope
                 console.log("entering");
-                let varid = scope.getVariableId(child.name);
+                let varid = scope.getVarId(child.name);
                 console.log("Exciting", varid, child.name);
                 emitGetArguments(scope, argumentId);
                 emitAssignValue(scope, varid);
@@ -425,7 +428,8 @@ export function GenerateFunctionExpression(node: FunctionExpression, scope: Scop
         scope.generate(node.body);
     }else{
         let child = scope.makeChild(node);
-        child.generate(child.node);
+        GenerateByteCode(child.node, child);
+        //child.generate(child.node);
         emitEND(child);
         emitCreateFunction(scope, child.id);
     }
@@ -433,12 +437,15 @@ export function GenerateFunctionExpression(node: FunctionExpression, scope: Scop
 
 export function GenerateFunctionDeclaration(node: FunctionDeclaration, scope: Scope){
     
+    console.log("In theory this should never run...");
+    return;
+
     if(scope.node === node){
         let argumentId = 0;
         node.params.forEach(child => {
             if(child.type === "Identifier"){
                 //redeclare the variable under the new scope
-                let varid = scope.getVariableId(child.name);
+                let varid = scope.getVarId(child.name);
                 emitGetArguments(scope, argumentId);
                 emitAssignValue(scope, varid);
                 argumentId++;
@@ -451,10 +458,10 @@ export function GenerateFunctionDeclaration(node: FunctionDeclaration, scope: Sc
 
         scope.generate(node.body);
     }else{
-        let id = scope.getVariableId(node.id.name);
+        let id = scope.getVarId(node.id.name);
 
         let child = scope.makeChild(node);
-        child.generate(child.node);
+        GenerateByteCode(child.node, child);
         emitEND(child);
     
         emitCreateFunction(scope, child.id);
@@ -478,7 +485,7 @@ export function GenerateIdentifier(node: Identifier, scope: Scope){
         return;
     }
 
-    let id = scope.getVariableId(node.name);
+    let id = scope.getVarId(node.name);
 
     if(id === -1){ //its a global property...
         let id = scope.getStringId(node.name);
@@ -493,14 +500,32 @@ export function GenerateLogicalExpression(node: LogicalExpression, scope: Scope)
     switch(node.operator){
         case "||": {
             scope.generate(node.left);
+            emitDuplicate(scope);
+            emitJumpIfFalse(scope);
+            let falseLbl = scope.makeLabel(Uint32Array.BYTES_PER_ELEMENT);
+            falseLbl.setOrigin();
+
+            emitJMP(scope);
+            let skipLbl = scope.makeLabel(Uint32Array.BYTES_PER_ELEMENT);
+            skipLbl.setOrigin();
+
+            falseLbl.setTarget();
             scope.generate(node.right);
             emitOr(scope);
+            skipLbl.setTarget();
             break;
         }
         case "&&": {
             scope.generate(node.left);
+            emitDuplicate(scope);
+            emitJumpIfFalse(scope);
+            let falseLbl = scope.makeLabel(Uint32Array.BYTES_PER_ELEMENT);
+            falseLbl.setOrigin();
+
             scope.generate(node.right);
             emitAnd(scope);
+
+            falseLbl.setTarget();
             break;
         }
         default: 
@@ -568,7 +593,7 @@ export function GenerateAssignmentExpression(node: AssignmentExpression, scope: 
     if(node.operator === "="){
         switch(left.type){
             case "Identifier":
-                let id = scope.getVariableId(left.name);
+                let id = scope.getVarId(left.name);
                 if(id === -1){
                     let stringid = scope.getStringId(left.name);
                     emitString(scope, stringid);
@@ -598,7 +623,7 @@ export function GenerateAssignmentExpression(node: AssignmentExpression, scope: 
     }else if(node.operator === "+=" || node.operator === "-=" || node.operator === "%=" || node.operator === "^=" || node.operator === "&=" || node.operator === "|="){
         switch(left.type){
             case "Identifier":
-                let id = scope.getVariableId(left.name);
+                let id = scope.getVarId(left.name);
                 if(id === -1){
                     let stringid = scope.getStringId(left.name);
                     emitString(scope, stringid);
@@ -681,7 +706,7 @@ export function GenerateVariableDeclarator(node: VariableDeclarator, scope: Scop
     if(node.init) scope.generate(node.init);
     switch(node.id.type){
         case "Identifier": {
-            let id = scope.getVariableId(node.id.name);
+            let id = scope.getVarId(node.id.name);
             emitAssignValue(scope, id);
             break;
         }
@@ -699,7 +724,7 @@ export function GenerateMemberExpression(node: MemberExpression, scope: Scope){
             if(object.name === "arguments"){
                 emitArguments(scope);
             }else{
-                let id = scope.getVariableId(object.name);
+                let id = scope.getVarId(object.name);
                 if(id === -1){
                     let id = scope.getStringId(object.name);
                     emitString(scope, id);
@@ -817,7 +842,7 @@ export function GenerateUpdateExpression(node: UpdateExpression, scope: Scope){
     let argument = node.argument;
     switch(argument.type){
         case "Identifier": {
-            let varid = scope.getVariableId(argument.name);
+            let varid = scope.getVarId(argument.name);
             switch(node.operator){
                 case "++": {
                     if(varid === -1){
@@ -949,14 +974,7 @@ export function GenerateThrowStatement(node: ThrowStatement, scope: Scope){
 }
 
 export function GenerateBlockStatement(node: BlockStatement, scope: Scope){
-   // if(scope.node === node){
-        node.body.forEach(child => scope.generate(child));
-        //scope.emitEND();
-    //}else{
-      //  let child = scope.child(node);
-       // scope.emitJumpToBlock(child.id);
-        //child.generate(child.node);
-    //}
+    node.body.forEach(child => scope.generate(child));
 }
 
 export function GenerateIfStatement(node: IfStatement, scope: Scope){
@@ -984,4 +1002,48 @@ export function GenerateExpressionStatement(node: ExpressionStatement, scope: Sc
 export function GenerateProgram(node: Program, scope: Scope){
     node.body.forEach(child => scope.generate(child));
     emitEND(scope);
+}
+
+export function GenerateByteCode(node: Node, scope: Scope){
+    //add any functions to the top
+    scope.function_set.forEach( fn => {
+        //we want to generate params
+
+        let variableId = scope.getVarId(fn.id.name);
+        if(variableId === -1) throw("Cant find function to unknown varaible: " + variableId);
+
+        let child_scope = scope.makeChild(fn);
+
+        emitCreateFunction(scope, child_scope.id);
+        emitAssignValue(scope, variableId);
+
+
+        let argumentId = 0;
+        fn.params.forEach(child => {
+            if(child.type === "Identifier"){
+                //redeclare the variable under the new scope
+                console.log("entering");
+                let varid = child_scope.getVarId(child.name);
+                console.log("Exciting", varid, child.name);
+                emitGetArguments(child_scope, argumentId);
+                emitAssignValue(child_scope, varid);
+                argumentId++;
+
+            }else{
+                throw("Unknown paramater type");
+                scope.generate(child)
+            }
+        });
+
+        let argumentVariableId = child_scope.getVarId("arguments");
+        emitArguments(child_scope);
+        emitAssignValue(child_scope, argumentVariableId);
+
+        //child_scope.generate(fn.body);
+        GenerateByteCode(fn.body, child_scope);
+        emitEND(child_scope);
+    } )
+
+    //walk the the node for all children
+    scope.generate(node);
 }
