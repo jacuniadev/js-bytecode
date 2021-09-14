@@ -56,6 +56,7 @@ export class Scope{
     }
 
     parseScope(){
+        //console.log("Discovered a new Scope. Parsing...")
         this.traverse(this.node);
         this.cleanUp();
     }
@@ -184,6 +185,7 @@ export class Scope{
     }
 
     generate(node: Node){
+    //  console.log("Benerating Bytecode for: " + node.type);
         switch(node.type){
             case "Literal":
                 GenerateLiteral(node, this);

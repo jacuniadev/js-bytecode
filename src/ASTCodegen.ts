@@ -1039,9 +1039,9 @@ export function GenerateByteCode(node: Node, scope: Scope){
         fn.params.forEach(child => {
             if(child.type === "Identifier"){
                 //redeclare the variable under the new scope
-                console.log("entering");
+                //console.log("entering");
                 let varid = child_scope.getVarId(child.name);
-                console.log("Exciting", varid, child.name);
+                //console.log("Exciting", varid, child.name);
                 emitGetArguments(child_scope, argumentId);
                 emitAssignValue(child_scope, varid);
                 argumentId++;
